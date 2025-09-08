@@ -4,7 +4,6 @@ import enum
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol
 
 from sqlalchemy import DateTime, Enum, String, desc, func, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
@@ -60,9 +59,3 @@ class VideoService:
 
 class NoVideosError(Exception):
     pass
-
-
-class VideoRepository(Protocol):
-    def select(self, video_id: str) -> Video: ...
-
-    def insert(self, video: Video) -> None: ...
