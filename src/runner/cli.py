@@ -10,7 +10,7 @@ from src.infra.downloaders.http import HttpVideoDownloader
 from src.infra.fastapi.index import index_router
 from src.infra.fastapi.translations import translation_router
 from src.infra.fastapi.videos import video_router
-from src.infra.translators.gemini import GeminiTranslator
+from src.infra.translators.gemini import FakeGeminiTranslator, GeminiTranslator
 from src.runner.config import connector
 
 cli = Typer()
@@ -35,9 +35,10 @@ def get_app() -> FastAPI:
     app = FastAPI()
     app.state.db = connector()
     app.state.video_downloader = HttpVideoDownloader()
-    app.state.translator = GeminiTranslator(
-        os.getenv("GEMINI_API_KEY", "No gemini api key provided")
-    )
+
+    app.state.translator = FakeGeminiTranslator()
+    if "GEMINI_API_KEY" in os.environ:
+        app.state.translator = GeminiTranslator(os.environ["GEMINI_API_KEY"])
 
     app.mount(
         "/static",
