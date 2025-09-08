@@ -45,18 +45,34 @@ class VideoService:
     def get_videos(self) -> list[Video]:
         return list(self.session.scalars(select(Video)).all())
 
-    def add_video(self, video: Video) -> None:
+    def add_video(self, video: Video) -> Video:
         self.session.add(video)
+        self.session.flush()
+        return self.get_last_video()
+
+    def get_video(self, video_id: str) -> Video:
+        video = self.session.scalars(
+            select(Video).where(Video.id == video_id)
+        ).one_or_none()
+
+        if not video:
+            raise VideoNotFoundError(f"Video with {id} not found.")
+
+        return video
 
     def get_last_video(self) -> Video:
-        video = self.session.scalars(
-            select(Video).order_by(desc(Video.created_at)).limit(1)
-        ).one_or_none()
+        video = (
+            self.session.scalars(
+                select(Video).order_by(
+                    desc(Video.created_at),
+                ),
+            ).all()
+        )  # Sqlite doesn't save microseconds for datetime, so this is a quick hack
 
         if not video:
             raise NoVideosError("No videos have been added yet.")
 
-        return video
+        return video[-1]
 
 
 @dataclass
@@ -71,4 +87,8 @@ class VideoDownloader(Protocol):
 
 
 class NoVideosError(Exception):
+    pass
+
+
+class VideoNotFoundError(Exception):
     pass

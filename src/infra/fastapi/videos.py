@@ -4,9 +4,9 @@ import os
 from datetime import datetime
 
 from fastapi import APIRouter, status
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel, HttpUrl, field_validator
 
+from src.core.videos import Video as CoreVideo
 from src.core.videos import VideoType
 from src.infra.fastapi.dependables import VideoServiceDependable
 
@@ -30,11 +30,6 @@ class UploadVideo(BaseModel):
         return url
 
 
-@video_router.post("/upload-video", status_code=status.HTTP_200_OK)
-def upload_video(request: UploadVideo, service: VideoServiceDependable) -> JSONResponse:  # noqa: ARG001
-    return JSONResponse("")
-
-
 class Video(BaseModel):
     id: str
     original_url: str
@@ -44,6 +39,18 @@ class Video(BaseModel):
 
 class Videos(BaseModel):
     videos: list[Video]
+
+
+@video_router.post("/upload-video", status_code=status.HTTP_200_OK)
+def upload_video(request: UploadVideo, service: VideoServiceDependable) -> Video:
+    video = service.add_video(CoreVideo(original_url=str(request.video_url)))
+
+    return Video(
+        id=video.id,
+        original_url=video.original_url,
+        video_type=video.video_type.value,
+        created_at=video.created_at,
+    )
 
 
 @video_router.get("/videos", status_code=status.HTTP_200_OK)
