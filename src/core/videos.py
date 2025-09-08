@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import enum
+import io
+import tempfile
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Protocol
+from typing import BinaryIO, Protocol
 
 from moviepy import VideoFileClip
 from sqlalchemy import DateTime, Enum, String, desc, func, select
@@ -103,6 +105,53 @@ class VideoService:
             height,
         )
 
+        # --- NEW METHOD: Extract Audio Segment ---
+
+    def extract_audio_segment(
+        self,
+        video_id: str,
+        video_type: VideoType,
+        from_seconds: float,
+        to_seconds: float,
+    ) -> BinaryIO:
+        video_file_path = Path(f"data/videos/{video_id}.{video_type.value}")
+        if not video_file_path.is_file():
+            raise VideoNotFoundError(
+                f"Video file not found for ID '{video_id}' at {video_file_path}"
+            )
+
+        if from_seconds < 0 or to_seconds < from_seconds:
+            raise ValueError("Invalid audio segment range provided.")
+
+        video_clip = VideoFileClip(str(video_file_path))
+
+        if to_seconds > video_clip.duration:
+            to_seconds = video_clip.duration
+            if from_seconds >= to_seconds:
+                video_clip.close()
+                raise ValueError(
+                    f"Requested audio segment start ({from_seconds}s) "
+                    f"is beyond video duration ({video_clip.duration}s)."
+                )
+
+        audio_clip = video_clip.subclipped(from_seconds, to_seconds).audio
+
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_fp:
+            temp_audio_file = Path(temp_fp.name)
+        audio_clip.write_audiofile(
+            str(temp_audio_file), codec="pcm_s16le", fps=44100, logger=None
+        )
+
+        with open(temp_audio_file, "rb") as f:
+            output_buffer = io.BytesIO(f.read())
+
+        output_buffer.seek(0)
+
+        audio_clip.close()
+        video_clip.close()
+
+        return output_buffer
+
 
 class VideoDownloader(Protocol):
     def download_video(
@@ -123,4 +172,8 @@ class NoVideosError(Exception):
 
 
 class VideoNotFoundError(Exception):
+    pass
+
+
+class AudioExtractionError(Exception):
     pass

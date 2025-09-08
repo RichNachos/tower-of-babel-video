@@ -3,10 +3,16 @@ from __future__ import annotations
 import os
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel, HttpUrl, field_validator
 
-from src.core.videos import NoVideosError, VideoDownloadError, VideoType
+from src.core.videos import (
+    AudioExtractionError,
+    NoVideosError,
+    VideoDownloadError,
+    VideoNotFoundError,
+    VideoType,
+)
 from src.core.videos import Video as CoreVideo
 from src.core.videos import VideoMetadata as CoreVideoMetadata
 from src.infra.fastapi.dependables import VideoServiceDependable
@@ -104,7 +110,7 @@ def get_last_video(service: VideoServiceDependable) -> Video:
     try:
         video = service.get_last_video()
     except NoVideosError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
     return Video.from_core(
         video,
@@ -113,3 +119,33 @@ def get_last_video(service: VideoServiceDependable) -> Video:
             video.video_type,
         ),
     )
+
+
+@video_router.get(
+    "/videos/{video_id}/audio-segment",
+    status_code=status.HTTP_200_OK,
+    response_class=Response,
+)
+def get_audio_segment(
+    video_id: str,
+    from_seconds: float,
+    to_seconds: float,
+    service: VideoServiceDependable,
+) -> Response:
+    try:
+        video = service.get_video(video_id)  # Get video details to find its type
+
+        audio_stream = service.extract_audio_segment(
+            video_id=video.id,
+            video_type=video.video_type,
+            from_seconds=from_seconds,
+            to_seconds=to_seconds,
+        )
+
+        # Return the audio stream as a Response with the appropriate media type
+        return Response(content=audio_stream.read(), media_type="audio/wav")
+
+    except VideoNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except (ValueError, AudioExtractionError) as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
