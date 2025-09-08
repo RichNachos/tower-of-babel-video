@@ -1,7 +1,10 @@
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from typer import Typer
+
+from src.infra.fastapi.index import index_router
 
 cli = Typer()
 
@@ -22,4 +25,12 @@ def run(
 
 
 def get_app() -> FastAPI:
-    return FastAPI()
+    app = FastAPI()
+    app.mount(
+        "/static",
+        StaticFiles(directory="src/infra/fastapi/static"),
+        name="static",
+    )
+    app.include_router(index_router)
+
+    return app
