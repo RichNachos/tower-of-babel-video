@@ -1,3 +1,5 @@
+import os
+
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -7,6 +9,7 @@ from typer import Typer
 from src.infra.downloaders.http import HttpVideoDownloader
 from src.infra.fastapi.index import index_router
 from src.infra.fastapi.videos import video_router
+from src.infra.translators.gemini import GeminiTranslator
 from src.runner.config import connector
 
 cli = Typer()
@@ -31,6 +34,9 @@ def get_app() -> FastAPI:
     app = FastAPI()
     app.state.db = connector()
     app.state.video_downloader = HttpVideoDownloader()
+    app.state.translator = GeminiTranslator(
+        os.getenv("GEMINI_API_KEY", "No gemini api key provided")
+    )
 
     app.mount(
         "/static",

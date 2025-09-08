@@ -119,3 +119,7 @@ class Translator(Protocol):
         from_language: Language,
         to_language: Language,
     ) -> TranslatorResponse: ...
+
+
+class TranslatorError(Exception):
+    pass

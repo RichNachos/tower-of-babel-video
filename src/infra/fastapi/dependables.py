@@ -5,6 +5,7 @@ from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
 from src.core.base import Connector
+from src.core.translations import TranslationService, Translator
 from src.core.videos import (
     VideoDownloader,
     VideoService,
@@ -38,3 +39,14 @@ def get_video_service(
 
 
 VideoServiceDependable = Annotated[VideoService, Depends(get_video_service)]
+TranslatorDependable = Annotated[Translator, inject("translator")]
+
+
+def get_translation_service(
+    session: SessionDependable,
+    video_service: VideoServiceDependable,
+    translator: TranslatorDependable,
+) -> TranslationService:
+    return TranslationService(
+        session=session, video_service=video_service, translator=translator
+    )
