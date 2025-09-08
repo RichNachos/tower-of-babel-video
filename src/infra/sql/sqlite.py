@@ -9,13 +9,17 @@ from src.core.base import Base
 
 @dataclass
 class SqliteConnector:
-    db_path: str = field(default=":memory:")
+    db_url: str | None = field(default=None)
+    _memory: str = field(default="file:memory?mode=memory&cache=shared&uri=true")
 
     eng: Engine = field(init=False)
     session_maker: sessionmaker[Session] = field(init=False)
 
     def __post_init__(self) -> None:
-        self.eng = create_engine(f"sqlite:///{self.db_path}")
+        if not self.db_url:
+            self.db_url = self._memory
+
+        self.eng = create_engine(f"sqlite:///{self.db_url}")
         self.session_maker = sessionmaker(bind=self.eng)
 
         Base.metadata.create_all(self.eng)

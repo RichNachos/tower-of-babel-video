@@ -5,4 +5,4 @@ from src.infra.sql.sqlite import SqliteConnector
 
 
 def connector() -> Connector:
-    return SqliteConnector(db_path=os.getenv("DB", ":memory:"))
+    return SqliteConnector(db_url=os.getenv("DB"))

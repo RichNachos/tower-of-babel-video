@@ -40,6 +40,7 @@ def get_app() -> FastAPI:
         StaticFiles(directory="data"),
         name="data",
     )
+
     app.include_router(index_router)
     app.include_router(video_router)
 
