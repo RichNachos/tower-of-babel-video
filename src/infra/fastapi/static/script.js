@@ -13,8 +13,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const noVideoMessage = document.getElementById('no-video-message');
     const loadingBar = document.getElementById('loading-bar');
 
+    // Video Information Card elements
+    const videoIdSpan = document.getElementById('video-id');
+    const originalUrlLink = document.getElementById('original-url');
+    const videoTypeSpan = document.getElementById('video-type');
+    const uploadedAtSpan = document.getElementById('uploaded-at');
     const durationSpan = document.getElementById('duration');
+    const widthSpan = document.getElementById('width'); // New
     const heightSpan = document.getElementById('height');
+
+    // Other Cards
     const playAudioButton = document.getElementById('play-audio');
     const downloadAudioButton = document.getElementById('download-audio');
     const translationP = document.getElementById('translation');
@@ -68,15 +76,21 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadVideoDetails(video) {
         if (!video) {
             displayVideoPlayerMessage('No video loaded. Upload one!', false);
-            // Clear other fields
+            // Clear all video information fields
+            videoIdSpan.textContent = 'N/A';
+            originalUrlLink.textContent = 'N/A';
+            originalUrlLink.href = '#';
+            videoTypeSpan.textContent = 'N/A';
+            uploadedAtSpan.textContent = 'N/A';
             durationSpan.textContent = 'N/A';
+            widthSpan.textContent = 'N/A';
             heightSpan.textContent = 'N/A';
+
             translationP.textContent = 'N/A';
             firstFrameImg.src = '';
             firstFrameImg.style.display = 'none';
             ocrOutputDiv.innerHTML = 'No text detected yet.';
             videoUrlInput.value = '';
-            // Update the floating label state
             const videoUrlTextField = mdc.textField.MDCTextField.attachTo(videoUrlInput.closest('.mdc-text-field'));
             videoUrlTextField.value = '';
             videoUrlTextField.layout();
@@ -94,16 +108,27 @@ document.addEventListener('DOMContentLoaded', () => {
         videoPlayer.load(); // Load the new video source
         videoPlayer.play(); // Attempt to autoplay
 
+        // Populate basic video information
+        videoIdSpan.textContent = video.id;
+        originalUrlLink.textContent = new URL(video.original_url).hostname;
+        originalUrlLink.href = video.original_url;
+        videoTypeSpan.textContent = video.video_type.toUpperCase();
+        uploadedAtSpan.textContent = new Date(video.created_at).toLocaleString(); // Nicer date format
+
+        // MOCK_API calls for duration, width, height (assuming these are not in your backend /videos response)
         try {
             const videoDetails = await MOCK_API.getVideoDetails(video.original_url);
             durationSpan.textContent = videoDetails.duration;
+            widthSpan.textContent = videoDetails.width;
             heightSpan.textContent = videoDetails.height;
         } catch (error) {
             console.error("Could not fetch video details from mock API:", error);
             durationSpan.textContent = 'N/A';
+            widthSpan.textContent = 'N/A';
             heightSpan.textContent = 'N/A';
         }
 
+        // MOCK_API calls for first frame and OCR
         try {
             const firstFrame = await MOCK_API.getFirstFrame(video.original_url);
             firstFrameImg.src = URL.createObjectURL(firstFrame);
@@ -279,6 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const MOCK_API = {
         getVideoDetails: (url) => new Promise(resolve => setTimeout(() => {
             console.log("MOCK: Getting video details for", url);
+            // Added width to mock response
             resolve({ duration: 125.7, height: 1080, width: 1920 });
         }, 500)),
         getAudioClip: (url) => new Promise(resolve => setTimeout(() => {
