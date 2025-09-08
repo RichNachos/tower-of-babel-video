@@ -6,8 +6,8 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, HttpUrl, field_validator
 
+from src.core.videos import NoVideosError, VideoDownloadError, VideoType
 from src.core.videos import Video as CoreVideo
-from src.core.videos import VideoDownloadError, VideoType
 from src.infra.fastapi.dependables import VideoServiceDependable
 
 video_router = APIRouter(tags=["Videos"])
@@ -68,4 +68,19 @@ def videos(service: VideoServiceDependable) -> Videos:
             )
             for v in service.get_videos()
         ]
+    )
+
+
+@video_router.get("/videos/last", status_code=status.HTTP_200_OK)
+def get_last_video(service: VideoServiceDependable) -> Video:
+    try:
+        video = service.get_last_video()
+    except NoVideosError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    return Video(
+        id=video.id,
+        original_url=video.original_url,
+        video_type=video.video_type.value,
+        created_at=video.created_at,
     )
