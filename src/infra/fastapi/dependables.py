@@ -17,10 +17,7 @@ def inject(dependency: str) -> Any:
     return Depends(get)
 
 
-ConnectorDependable = Annotated[
-    Connector,
-    inject("db"),
-]
+ConnectorDependable = Annotated[Connector, inject("db")]
 
 
 def get_session(connector: ConnectorDependable) -> Generator[Session]:
@@ -28,19 +25,11 @@ def get_session(connector: ConnectorDependable) -> Generator[Session]:
         yield session
 
 
-SessionDependable = Annotated[
-    Session,
-    Depends(get_session),
-]
+SessionDependable = Annotated[Session, Depends(get_session)]
 
 
-def get_video_service(
-    session: SessionDependable,
-) -> VideoService:
+def get_video_service(session: SessionDependable) -> VideoService:
     return VideoService(session=session)
 
 
-VideoServiceDependable = Annotated[
-    VideoService,
-    Depends(get_video_service),
-]
+VideoServiceDependable = Annotated[VideoService, Depends(get_video_service)]
