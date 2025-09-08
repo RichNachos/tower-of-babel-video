@@ -1,0 +1,85 @@
+body {
+  font-family: "Roboto", sans-serif;
+  background-color: #e8eaf6; /* Lighter purple-blue for a softer look */
+  margin: 0; /* Remove default body margin */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Ensure body takes full viewport height */
+}
+.mdc-top-app-bar {
+  background-color: #3f51b5; /* Deeper blue for app bar */
+  color: white;
+  box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2),
+    0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
+}
+.container {
+  max-width: 900px; /* Slightly wider container */
+  margin: 20px auto; /* Centered with vertical margin */
+  padding: 0 16px; /* Horizontal padding */
+  flex-grow: 1; /* Allow container to grow and fill space */
+}
+.mdc-card {
+  margin-bottom: 20px;
+  box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2),
+    0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, 0.12);
+  border-radius: 8px; /* Slightly more rounded corners */
+}
+.mdc-card__primary-action {
+  padding: 20px; /* Increased padding */
+}
+.mdc-typography--headline6 {
+  font-weight: 500;
+  color: #303f9f; /* Darker blue for headings */
+  margin-bottom: 12px;
+}
+.mdc-typography--body1,
+.mdc-typography--body2 {
+  color: #424242; /* Darker grey for body text */
+  line-height: 1.6;
+}
+#ocr-output {
+  font-family: "Fira Code", "Courier New", Courier, monospace; /* Prettier monospace font if available */
+  background-color: #eceff1; /* Light grey-blue for output background */
+  padding: 15px;
+  border-radius: 4px;
+  border: 1px solid #cfd8dc;
+  white-space: pre-wrap; /* Preserve whitespace and wrap text */
+  word-wrap: break-word; /* Break long words */
+  min-height: 80px; /* Ensure some height even if empty */
+  color: #263238;
+}
+/* Styling for the video URL input and button group */
+.video-input-group {
+  display: flex;
+  align-items: flex-end; /* Align items at the bottom */
+  gap: 16px; /* Space between input and button */
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+}
+.video-input-group .mdc-text-field {
+  flex-grow: 1; /* Allow text field to take up available space */
+  min-width: 250px; /* Minimum width for input */
+}
+/* Style for image */
+#first-frame {
+  width: 100%;
+  height: auto; /* Maintain aspect ratio */
+  max-height: 400px; /* Limit height for large images */
+  object-fit: contain; /* Ensure image fits without cropping */
+  border-radius: 4px;
+  margin-top: 15px;
+  border: 1px solid #e0e0e0;
+}
+/* Actions button group styling */
+.mdc-card__actions {
+  border-top: 1px solid rgba(0, 0, 0, 0.05); /* Subtle separator */
+  padding: 8px; /* Padding for actions area */
+  display: flex; /* Use flexbox for button grouping */
+  justify-content: flex-end; /* Align buttons to the right */
+  gap: 8px; /* Space between buttons */
+  flex-wrap: wrap;
+}
+.mdc-card__action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
