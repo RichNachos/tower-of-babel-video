@@ -10,8 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const videoUrlInput = document.getElementById('video-url');
     const processVideoButton = document.getElementById('process-video');
     const videoPlayer = document.getElementById('video-player');
-    const videoPlayerDisplay = document.getElementById('video-player-display');
     const noVideoMessage = document.getElementById('no-video-message');
+    const loadingBar = document.getElementById('loading-bar');
 
     const durationSpan = document.getElementById('duration');
     const heightSpan = document.getElementById('height');
@@ -23,7 +23,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadFrameButton = document.getElementById('download-frame');
     const ocrOutputDiv = document.getElementById('ocr-output');
 
-    // Helper to display messages in the video player area
+    // Sidebar Elements
+    const videoListTbody = document.getElementById('video-list-tbody');
+    const prevPageButton = document.getElementById('prev-page-button');
+    const nextPageButton = document.getElementById('next-page-button');
+    const pageInfoSpan = document.getElementById('page-info');
+
+    // Global State for Pagination
+    let allVideos = [];
+    let currentPage = 1;
+    const videosPerPage = 5; // Number of videos to show per page in the sidebar
+
+    // --- Loading & Button State Management ---
+    function showLoading() {
+        loadingBar.style.display = 'block';
+        mdc.linearProgress.MDCLinearProgress.attachTo(loadingBar).open();
+    }
+
+    function hideLoading() {
+        loadingBar.style.display = 'none';
+        mdc.linearProgress.MDCLinearProgress.attachTo(loadingBar).close();
+    }
+
+    function disableProcessButton() {
+        processVideoButton.disabled = true;
+        processVideoButton.classList.add('mdc-button--disabled');
+    }
+
+    function enableProcessButton() {
+        processVideoButton.disabled = false;
+        processVideoButton.classList.remove('mdc-button--disabled');
+    }
+
+    // --- Helper to display messages in the video player area ---
     function displayVideoPlayerMessage(message, isError = false) {
         noVideoMessage.textContent = message;
         noVideoMessage.style.color = isError ? 'red' : '#757575';
@@ -32,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
         videoPlayer.src = ''; // Clear video source
     }
 
-    // Function to update the UI with video details
+    // --- Function to update the UI with video details ---
     async function loadVideoDetails(video) {
         if (!video) {
             displayVideoPlayerMessage('No video loaded. Upload one!', false);
@@ -62,12 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
         videoPlayer.load(); // Load the new video source
         videoPlayer.play(); // Attempt to autoplay
 
-        // NOTE: The backend '/videos' endpoints do not return duration or height directly.
-        // For a real application, you would either:
-        // 1. Store these in the Video model and return them from the API.
-        // 2. Have a separate API endpoint to get detailed metadata.
-        // 3. Extract them client-side using a <video> element (which is complex).
-        // For now, we will use the MOCK_API for these or leave as N/A.
         try {
             const videoDetails = await MOCK_API.getVideoDetails(video.original_url);
             durationSpan.textContent = videoDetails.duration;
@@ -78,7 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
             heightSpan.textContent = 'N/A';
         }
 
-        // MOCK_API calls for first frame and OCR
         try {
             const firstFrame = await MOCK_API.getFirstFrame(video.original_url);
             firstFrameImg.src = URL.createObjectURL(firstFrame);
@@ -97,12 +122,69 @@ document.addEventListener('DOMContentLoaded', () => {
         videoUrlInput.value = video.original_url;
         const videoUrlTextField = mdc.textField.MDCTextField.attachTo(videoUrlInput.closest('.mdc-text-field'));
         videoUrlTextField.value = video.original_url;
-        videoUrlTextField.layout(); // Make label float if value is set
+        videoUrlTextField.layout();
     }
 
-    // Function to load the last video from the backend
+    // --- Function to render video list in sidebar ---
+    function renderVideoList() {
+        videoListTbody.innerHTML = ''; // Clear existing rows
+
+        const totalPages = Math.ceil(allVideos.length / videosPerPage);
+        const startIndex = (currentPage - 1) * videosPerPage;
+        const endIndex = startIndex + videosPerPage;
+        const videosToDisplay = allVideos.slice(startIndex, endIndex);
+
+        if (videosToDisplay.length === 0) {
+            videoListTbody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No videos available.</td></tr>';
+        } else {
+            videosToDisplay.forEach(video => {
+                const row = videoListTbody.insertRow();
+                row.style.cursor = 'pointer'; // Make rows clickable
+                row.onclick = () => loadVideoDetails(video); // Load video on click
+
+                const idCell = row.insertCell(0);
+                idCell.textContent = video.id.substring(0, 8) + '...'; // Truncate ID
+
+                const urlCell = row.insertCell(1);
+                urlCell.textContent = new URL(video.original_url).hostname; // Show hostname for brevity
+                urlCell.title = video.original_url; // Full URL on hover
+
+                const dateCell = row.insertCell(2);
+                dateCell.textContent = new Date(video.created_at).toLocaleDateString();
+            });
+        }
+
+        // Update pagination controls
+        pageInfoSpan.textContent = `Page ${totalPages > 0 ? currentPage : 0} of ${totalPages}`;
+        prevPageButton.disabled = currentPage <= 1;
+        nextPageButton.disabled = currentPage >= totalPages;
+    }
+
+    // --- Function to fetch all videos for the sidebar ---
+    async function fetchAllVideos() {
+        console.log("Fetching all videos for sidebar...");
+        try {
+            const response = await fetch('/videos'); // Backend /videos returns all
+            if (response.ok) {
+                const data = await response.json();
+                // Sort videos by created_at in descending order for "latest" view
+                allVideos = data.videos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                renderVideoList();
+            } else {
+                const errorData = await response.json();
+                console.error("Error fetching video list:", errorData);
+                videoListTbody.innerHTML = `<tr><td colspan="3" style="color: red; text-align: center;">Error loading list.</td></tr>`;
+            }
+        } catch (error) {
+            console.error("Network error fetching video list:", error);
+            videoListTbody.innerHTML = `<tr><td colspan="3" style="color: red; text-align: center;">Network error.</td></tr>`;
+        }
+    }
+
+    // --- Function to load the last video from the backend ---
     async function loadLastVideo() {
         console.log("Attempting to load last video...");
+        showLoading();
         try {
             const response = await fetch('/videos/last');
             if (response.ok) {
@@ -120,11 +202,18 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error("Network error fetching last video:", error);
             displayVideoPlayerMessage('Network error. Could not load last video.', true);
+        } finally {
+            hideLoading();
         }
     }
 
-    // Initial load when page is ready
-    loadLastVideo();
+    // --- Initial Load and Event Listeners ---
+    async function initUI() {
+        await loadLastVideo(); // Load last video first
+        await fetchAllVideos(); // Then load all videos for the sidebar
+    }
+
+    initUI(); // Run initialization on page load
 
     // Event listener for the "Process Video" button
     processVideoButton.addEventListener('click', async () => {
@@ -135,6 +224,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         console.log("Uploading video:", url);
+        showLoading();
+        disableProcessButton();
         try {
             const response = await fetch('/videos', {
                 method: 'POST',
@@ -148,6 +239,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newVideo = await response.json();
                 console.log("Video uploaded and processed:", newVideo);
                 await loadVideoDetails(newVideo);
+                await fetchAllVideos(); // Refresh the sidebar list
+                currentPage = 1; // Go to first page of list
+                renderVideoList();
             } else {
                 const errorData = await response.json();
                 console.error("Error uploading video:", errorData);
@@ -158,6 +252,25 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Network error during video upload:", error);
             alert('Network error during video upload.');
             await loadVideoDetails(null); // Clear UI on network error
+        } finally {
+            hideLoading();
+            enableProcessButton();
+        }
+    });
+
+    // Pagination Event Listeners
+    prevPageButton.addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            renderVideoList();
+        }
+    });
+
+    nextPageButton.addEventListener('click', () => {
+        const totalPages = Math.ceil(allVideos.length / videosPerPage);
+        if (currentPage < totalPages) {
+            currentPage++;
+            renderVideoList();
         }
     });
 
@@ -166,13 +279,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const MOCK_API = {
         getVideoDetails: (url) => new Promise(resolve => setTimeout(() => {
             console.log("MOCK: Getting video details for", url);
-            // Simulate some details
             resolve({ duration: 125.7, height: 1080, width: 1920 });
         }, 500)),
         getAudioClip: (url) => new Promise(resolve => setTimeout(() => {
             console.log("MOCK: Getting audio clip for", url);
-            // Return a dummy audio blob
-            const dummyAudioData = new Uint8Array([0x4F, 0x67, 0x67, 0x53, 0x00, 0x02, 0x00, 0x00]); // Tiny invalid ogg header
+            const dummyAudioData = new Uint8Array([0x4F, 0x67, 0x67, 0x53, 0x00, 0x02, 0x00, 0x00]);
             resolve(new Blob([dummyAudioData], { type: 'audio/ogg' }));
         }, 500)),
         translateText: (text) => new Promise(resolve => setTimeout(() => {
@@ -181,12 +292,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 500)),
         textToSpeech: (text) => new Promise(resolve => setTimeout(() => {
             console.log("MOCK: Text to speech for:", text);
-            // Return a dummy Audio object.
             resolve(new Audio());
         }, 500)),
         getFirstFrame: (url) => new Promise(resolve => setTimeout(() => {
             console.log("MOCK: Getting first frame for", url);
-            // Return a dummy image blob (e.g., a 1x1 transparent GIF)
             const dummyImageData = "R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==";
             const byteCharacters = atob(dummyImageData);
             const byteNumbers = new Array(byteCharacters.length);
@@ -205,7 +314,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event listeners for other buttons (using MOCK_API as no backend endpoints provided for these)
     playAudioButton.addEventListener('click', async () => {
-        // This should ideally play audio related to the *currently loaded* video
         const audioClip = await MOCK_API.getAudioClip('current_video_audio_url_mock');
         const audio = new Audio(URL.createObjectURL(audioClip));
         audio.currentTime = 0;
@@ -233,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     downloadFrameButton.addEventListener('click', async () => {
         const currentFrameSrc = firstFrameImg.src;
-        if (currentFrameSrc && currentFrameSrc !== window.location.href + '#') {
+        if (currentFrameSrc && currentFrameSrc.startsWith('blob:')) { // Check if it's a blob URL
             const a = document.createElement('a');
             a.href = currentFrameSrc;
             a.download = 'first-frame.png';

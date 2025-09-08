@@ -56,169 +56,237 @@
 
     <!-- Main Content Area -->
     <main class="mdc-top-app-bar--fixed-adjust">
-      <div class="container">
-        <!-- Video URL Input Card -->
-        <div class="mdc-card">
-          <div class="mdc-card__primary-action">
-            <h2 class="mdc-typography--headline6">Upload & Process Video</h2>
-            <div class="video-input-group">
-              <div
-                class="mdc-text-field mdc-text-field--outlined"
-                style="flex-grow: 1"
-              >
-                <input
-                  type="text"
-                  id="video-url"
-                  class="mdc-text-field__input"
-                  aria-labelledby="video-url-label"
-                />
-                <div class="mdc-notched-outline">
-                  <div class="mdc-notched-outline__leading"></div>
-                  <div class="mdc-notched-outline__notch">
-                    <label
-                      for="video-url"
-                      class="mdc-floating-label"
-                      id="video-url-label"
-                      >Paste Video URL (MP4 only)</label
-                    >
-                  </div>
-                  <div class="mdc-notched-outline__trailing"></div>
-                </div>
+      <div class="app-layout">
+        <!-- Sidebar for Latest Videos -->
+        <div class="sidebar">
+          <div class="mdc-card" style="flex-grow: 1; display: flex; flex-direction: column;">
+            <div class="mdc-card__primary-action" style="flex-grow: 1;">
+              <h2 class="mdc-typography--headline6">Latest Uploaded Videos</h2>
+              <div style="max-height: 400px; overflow-y: auto;"> <!-- Scrollable area for video list -->
+                <table class="video-list-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>URL</th>
+                      <th>Uploaded</th>
+                    </tr>
+                  </thead>
+                  <tbody id="video-list-tbody">
+                    <!-- Video rows will be inserted here by JavaScript -->
+                    <tr><td colspan="3" style="text-align: center;">Loading videos...</td></tr>
+                  </tbody>
+                </table>
               </div>
-              <button
-                class="mdc-button mdc-button--raised mdc-button--leading-icon"
-                id="process-video"
-              >
-                <span class="mdc-button__ripple"></span>
-                <i class="material-icons mdc-button__icon" aria-hidden="true"
-                  >play_circle_filled</i
+            </div>
+            <div class="mdc-card__actions pagination-controls">
+                <button class="mdc-button mdc-button--outlined" id="prev-page-button" disabled>
+                    <span class="mdc-button__ripple"></span>
+                    <i class="material-icons mdc-button__icon" aria-hidden="true">arrow_back_ios</i>
+                    <span class="mdc-button__label">Prev</span>
+                </button>
+                <span id="page-info" class="mdc-typography--body2">Page 1 of 1</span>
+                <button class="mdc-button mdc-button--outlined" id="next-page-button" disabled>
+                    <span class="mdc-button__ripple"></span>
+                    <i class="material-icons mdc-button__icon" aria-hidden="true">arrow_forward_ios</i>
+                    <span class="mdc-button__label">Next</span>
+                </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Content (right side) -->
+        <div class="main-content">
+          <!-- Loading Bar -->
+          <div role="progressbar" class="mdc-linear-progress mdc-linear-progress--indeterminate" id="loading-bar" style="display:none;">
+            <div class="mdc-linear-progress__buffer">
+              <div class="mdc-linear-progress__buffer-bar"></div>
+            </div>
+            <div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
+              <span class="mdc-linear-progress__bar-inner"></span>
+            </div>
+            <div class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar">
+              <span class="mdc-linear-progress__bar-inner"></span>
+            </div>
+          </div>
+
+
+          <!-- Video URL Input Card -->
+          <div class="mdc-card">
+            <div class="mdc-card__primary-action">
+              <h2 class="mdc-typography--headline6">Upload & Process Video</h2>
+              <div class="video-input-group">
+                <div
+                  class="mdc-text-field mdc-text-field--outlined"
+                  style="flex-grow: 1"
                 >
-                <span class="mdc-button__label">Process Video</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Video Player Card (New) -->
-        <div class="mdc-card">
-          <div class="mdc-card__primary-action">
-            <h2 class="mdc-typography--headline6">Loaded Video</h2>
-            <div id="video-player-display" style="text-align: center; min-height: 200px; display: flex; align-items: center; justify-content: center; background-color: #f0f0f0; border-radius: 4px;">
-                <video id="video-player" controls autoplay style="width: 100%; max-height: 400px; display: none; border-radius: 4px;"></video>
-                <p id="no-video-message" class="mdc-typography--body1" style="color: #757575;">No video loaded. Upload one!</p>
-            </div>
-          </div>
-        </div>
-
-
-        <!-- Video Details Card -->
-        <div class="mdc-card">
-          <div class="mdc-card__primary-action">
-            <h2 class="mdc-typography--headline6">Video Information</h2>
-            <div class="mdc-typography--body1">
-              <p>
-                <strong>Duration:</strong>
-                <span id="duration">N/A</span> seconds
-              </p>
-              <p>
-                <strong>Height:</strong> <span id="height">N/A</span> pixels
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Audio Card -->
-        <div class="mdc-card">
-          <div class="mdc-card__primary-action">
-            <h2 class="mdc-typography--headline6">Audio Extraction</h2>
-            <div class="mdc-typography--body1">
-              <p>
-                Play a specific audio segment or download the full extracted
-                audio track.
-              </p>
-            </div>
-          </div>
-          <div class="mdc-card__actions">
-            <div class="mdc-card__action-buttons">
-              <button
-                class="mdc-button mdc-button--outlined mdc-button--leading-icon"
-                id="play-audio"
-              >
-                <span class="mdc-button__ripple"></span>
-                <i class="material-icons mdc-button__icon" aria-hidden="true"
-                  >volume_up</i
+                  <input
+                    type="text"
+                    id="video-url"
+                    class="mdc-text-field__input"
+                    aria-labelledby="video-url-label"
+                  />
+                  <div class="mdc-notched-outline">
+                    <div class="mdc-notched-outline__leading"></div>
+                    <div class="mdc-notched-outline__notch">
+                      <label
+                        for="video-url"
+                        class="mdc-floating-label"
+                        id="video-url-label"
+                        >Paste Video URL (MP4 only)</label
+                      >
+                    </div>
+                    <div class="mdc-notched-outline__trailing"></div>
+                  </div>
+                </div>
+                <button
+                  class="mdc-button mdc-button--raised mdc-button--leading-icon"
+                  id="process-video"
                 >
-                <span class="mdc-button__label">Play Audio (0:30 - 0:45)</span>
-              </button>
-              <button
-                class="mdc-button mdc-button--outlined mdc-button--leading-icon"
-                id="download-audio"
-              >
-                <span class="mdc-button__ripple"></span>
-                <i class="material-icons mdc-button__icon" aria-hidden="true"
-                  >file_download</i
-                >
-                <span class="mdc-button__label">Download Audio</span>
-              </button>
+                  <span class="mdc-button__ripple"></span>
+                  <i
+                    class="material-icons mdc-button__icon"
+                    aria-hidden="true"
+                    >play_circle_filled</i
+                  >
+                  <span class="mdc-button__label">Process Video</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Translation Card -->
-        <div class="mdc-card">
-          <div class="mdc-card__primary-action">
-            <h2 class="mdc-typography--headline6">Detected Text Translation</h2>
-            <p id="translation" class="mdc-typography--body1">N/A</p>
-          </div>
-          <div class="mdc-card__actions">
-            <div class="mdc-card__action-buttons">
-              <button
-                class="mdc-button mdc-button--raised mdc-button--leading-icon"
-                id="speak-translation"
-              >
-                <span class="mdc-button__ripple"></span>
-                <i class="material-icons mdc-button__icon" aria-hidden="true"
-                  >record_voice_over</i
-                >
-                <span class="mdc-button__label">Speak Translation</span>
-              </button>
+          <!-- Video Player Card (New) -->
+          <div class="mdc-card">
+            <div class="mdc-card__primary-action">
+              <h2 class="mdc-typography--headline6">Loaded Video</h2>
+              <div id="video-player-display" style="text-align: center; min-height: 200px; display: flex; align-items: center; justify-content: center; background-color: #f0f0f0; border-radius: 4px;">
+                  <video id="video-player" controls autoplay style="width: 100%; max-height: 400px; display: none; border-radius: 4px;"></video>
+                  <p id="no-video-message" class="mdc-typography--body1" style="color: #757575;">No video loaded. Upload one!</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- First Frame Card -->
-        <div class="mdc-card">
-          <div class="mdc-card__primary-action">
-            <h2 class="mdc-typography--headline6">First Frame Screenshot</h2>
-            <img
-              id="first-frame"
-              src=""
-              alt="First frame of the video"
-              style="width: 100%; height: auto; max-height: 400px; object-fit: contain; border-radius: 4px; margin-top: 15px; border: 1px solid #e0e0e0; display: none"
-            />
-          </div>
-          <div class="mdc-card__actions">
-            <div class="mdc-card__action-buttons">
-              <button
-                class="mdc-button mdc-button--outlined mdc-button--leading-icon"
-                id="download-frame"
-              >
-                <span class="mdc-button__ripple"></span>
-                <i class="material-icons mdc-button__icon" aria-hidden="true"
-                  >wallpaper</i
-                >
-                <span class="mdc-button__label">Download Frame</span>
-              </button>
+
+          <!-- Video Details Card -->
+          <div class="mdc-card">
+            <div class="mdc-card__primary-action">
+              <h2 class="mdc-typography--headline6">Video Information</h2>
+              <div class="mdc-typography--body1">
+                <p>
+                  <strong>Duration:</strong>
+                  <span id="duration">N/A</span> seconds
+                </p>
+                <p>
+                  <strong>Height:</strong> <span id="height">N/A</span> pixels
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- OCR Detected Text Card -->
-        <div class="mdc-card">
-          <div class="mdc-card__primary-action">
-            <h2 class="mdc-typography--headline6">OCR Detected Text</h2>
-            <div id="ocr-output" class="mdc-typography--body2">
-              No text detected yet.
+          <!-- Audio Card -->
+          <div class="mdc-card">
+            <div class="mdc-card__primary-action">
+              <h2 class="mdc-typography--headline6">Audio Extraction</h2>
+              <div class="mdc-typography--body1">
+                <p>
+                  Play a specific audio segment or download the full extracted
+                  audio track.
+                </p>
+              </div>
+            </div>
+            <div class="mdc-card__actions">
+              <div class="mdc-card__action-buttons">
+                <button
+                  class="mdc-button mdc-button--outlined mdc-button--leading-icon"
+                  id="play-audio"
+                >
+                  <span class="mdc-button__ripple"></span>
+                  <i
+                    class="material-icons mdc-button__icon"
+                    aria-hidden="true"
+                    >volume_up</i
+                  >
+                  <span class="mdc-button__label"
+                    >Play Audio (0:30 - 0:45)</span
+                  >
+                </button>
+                <button
+                  class="mdc-button mdc-button--outlined mdc-button--leading-icon"
+                  id="download-audio"
+                >
+                  <span class="mdc-button__ripple"></span>
+                  <i
+                    class="material-icons mdc-button__icon"
+                    aria-hidden="true"
+                    >file_download</i
+                  >
+                  <span class="mdc-button__label">Download Audio</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Translation Card -->
+          <div class="mdc-card">
+            <div class="mdc-card__primary-action">
+              <h2 class="mdc-typography--headline6">
+                Detected Text Translation
+              </h2>
+              <p id="translation" class="mdc-typography--body1">N/A</p>
+            </div>
+            <div class="mdc-card__actions">
+              <div class="mdc-card__action-buttons">
+                <button
+                  class="mdc-button mdc-button--raised mdc-button--leading-icon"
+                  id="speak-translation"
+                >
+                  <span class="mdc-button__ripple"></span>
+                  <i
+                    class="material-icons mdc-button__icon"
+                    aria-hidden="true"
+                    >record_voice_over</i
+                  >
+                  <span class="mdc-button__label">Speak Translation</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- First Frame Card -->
+          <div class="mdc-card">
+            <div class="mdc-card__primary-action">
+              <h2 class="mdc-typography--headline6">First Frame Screenshot</h2>
+              <img
+                id="first-frame"
+                src=""
+                alt="First frame of the video"
+                style="width: 100%; height: auto; max-height: 400px; object-fit: contain; border-radius: 4px; margin-top: 15px; border: 1px solid #e0e0e0; display: none"
+              />
+            </div>
+            <div class="mdc-card__actions">
+              <div class="mdc-card__action-buttons">
+                <button
+                  class="mdc-button mdc-button--outlined mdc-button--leading-icon"
+                  id="download-frame"
+                >
+                  <span class="mdc-button__ripple"></span>
+                  <i
+                    class="material-icons mdc-button__icon"
+                    aria-hidden="true"
+                    >wallpaper</i
+                  >
+                  <span class="mdc-button__label">Download Frame</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- OCR Detected Text Card -->
+          <div class="mdc-card">
+            <div class="mdc-card__primary-action">
+              <h2 class="mdc-typography--headline6">OCR Detected Text</h2>
+              <div id="ocr-output" class="mdc-typography--body2">
+                No text detected yet.
+              </div>
             </div>
           </div>
         </div>
