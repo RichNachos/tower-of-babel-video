@@ -4,14 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tower of Babel Video</title>
+    <!-- Material Components Web CSS -->
     <link
       href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css"
       rel="stylesheet"
     />
+    <!-- Google Fonts for Material Icons -->
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
     />
+    <!-- Google Fonts for Roboto (used by MDC) -->
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
@@ -40,7 +43,7 @@
         <section
           class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start"
         >
-          <span class="mdc-top-app-bar__title">VideoLingo</span>
+          <span class="mdc-top-app-bar__title">Tower of Babel Video</span>
         </section>
         <section
           class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end"
@@ -95,6 +98,18 @@
             </div>
           </div>
         </div>
+
+        <!-- Video Player Card (New) -->
+        <div class="mdc-card">
+          <div class="mdc-card__primary-action">
+            <h2 class="mdc-typography--headline6">Loaded Video</h2>
+            <div id="video-player-display" style="text-align: center; min-height: 200px; display: flex; align-items: center; justify-content: center; background-color: #f0f0f0; border-radius: 4px;">
+                <video id="video-player" controls autoplay style="width: 100%; max-height: 400px; display: none; border-radius: 4px;"></video>
+                <p id="no-video-message" class="mdc-typography--body1" style="color: #757575;">No video loaded. Upload one!</p>
+            </div>
+          </div>
+        </div>
+
 
         <!-- Video Details Card -->
         <div class="mdc-card">
@@ -179,7 +194,7 @@
               id="first-frame"
               src=""
               alt="First frame of the video"
-              style="width: 100%; display: none"
+              style="width: 100%; height: auto; max-height: 400px; object-fit: contain; border-radius: 4px; margin-top: 15px; border: 1px solid #e0e0e0; display: none"
             />
           </div>
           <div class="mdc-card__actions">
