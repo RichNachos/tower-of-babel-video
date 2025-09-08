@@ -35,6 +35,11 @@ def get_app() -> FastAPI:
         StaticFiles(directory="src/infra/fastapi/static"),
         name="static",
     )
+    app.mount(
+        "/data",
+        StaticFiles(directory="data"),
+        name="data",
+    )
     app.include_router(index_router)
     app.include_router(video_router)
 
