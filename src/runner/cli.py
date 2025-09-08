@@ -5,6 +5,8 @@ from fastapi.staticfiles import StaticFiles
 from typer import Typer
 
 from src.infra.fastapi.index import index_router
+from src.infra.fastapi.videos import video_router
+from src.runner.config import connector
 
 cli = Typer()
 
@@ -26,11 +28,14 @@ def run(
 
 def get_app() -> FastAPI:
     app = FastAPI()
+    app.state.db = connector()
+
     app.mount(
         "/static",
         StaticFiles(directory="src/infra/fastapi/static"),
         name="static",
     )
     app.include_router(index_router)
+    app.include_router(video_router)
 
     return app
