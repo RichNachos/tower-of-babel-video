@@ -65,7 +65,7 @@
           >
             <div class="mdc-card__primary-action" style="flex-grow: 1">
               <h2 class="mdc-typography--headline6">Latest Uploaded Videos</h2>
-              <div style="max-height: 400px; overflow-y: auto">
+              <div style="max-height: 250px; overflow-y: auto">
                 <!-- Scrollable area for video list -->
                 <table class="video-list-table">
                   <thead>
@@ -112,6 +112,27 @@
                 >
                 <span class="mdc-button__label">Next</span>
               </button>
+            </div>
+          </div>
+
+          <!-- New: Translations List Card -->
+          <div class="mdc-card" style="flex-grow: 1; display: flex; flex-direction: column; margin-top: 20px;">
+            <div class="mdc-card__primary-action" style="flex-grow: 1;">
+              <h2 class="mdc-typography--headline6">Video Translations</h2>
+              <div style="max-height: 250px; overflow-y: auto;">
+                <table class="video-list-table"> <!-- Re-using class for similar styling -->
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>From/To</th>
+                      <th>Time</th>
+                    </tr>
+                  </thead>
+                  <tbody id="translation-list-tbody">
+                    <tr><td colspan="3" style="text-align: center;">No translations for this video.</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -377,6 +398,15 @@
                   >
                   <span class="mdc-button__label">Download Audio Segment</span>
                 </button>
+                 <button
+                  class="mdc-button mdc-button--raised mdc-button--leading-icon"
+                  id="translate-audio-button"
+                  disabled
+                >
+                  <span class="mdc-button__ripple"></span>
+                  <i class="material-icons mdc-button__icon" aria-hidden="true">translate</i>
+                  <span class="mdc-button__label">Translate Segment</span>
+                </button>
               </div>
             </div>
           </div>
@@ -397,7 +427,9 @@
                   disabled
                 >
                   <span class="mdc-button__ripple"></span>
-                  <i class="material-icons mdc-button__icon" aria-hidden="true"
+                  <i
+                    class="material-icons mdc-button__icon"
+                    aria-hidden="true"
                     >record_voice_over</i
                   >
                   <span class="mdc-button__label">Speak Translation</span>
@@ -456,5 +488,27 @@
       </div>
     </main>
     <script src="/static/script.js"></script>
+
+    <!-- Translation Modal (Hidden by default) -->
+    <div id="translation-modal" class="mdc-dialog" role="alertdialog" aria-modal="true" aria-labelledby="translation-dialog-title" aria-describedby="translation-dialog-content">
+      <div class="mdc-dialog__container">
+        <div class="mdc-dialog__surface">
+          <h2 class="mdc-dialog__title" id="translation-dialog-title">Translation Details</h2>
+          <div class="mdc-dialog__content" id="translation-dialog-content">
+            <p><strong>Original Text:</strong></p>
+            <p id="modal-original-text" class="mdc-typography--body1"></p>
+            <p><strong>Translated Text (Spanish):</strong></p>
+            <p id="modal-translated-text" class="mdc-typography--body1"></p>
+            <p class="mdc-typography--body2"><em>Segment: <span id="modal-segment-time"></span></em></p>
+          </div>
+          <div class="mdc-dialog__actions">
+            <button type="button" class="mdc-button mdc-dialog__button" data-mdc-dialog-action="close">
+              <span class="mdc-button__label">Close</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="mdc-dialog__scrim"></div>
+    </div>
   </body>
 </html>

@@ -22,12 +22,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const widthSpan = document.getElementById('width');
     const heightSpan = document.getElementById('height');
 
-    // Audio Controls (NEW/UPDATED)
+    // Audio Controls
     const audioSegmentVideoIdInput = document.getElementById('audio-segment-video-id');
     const fromSecondsInput = document.getElementById('from-seconds');
     const toSecondsInput = document.getElementById('to-seconds');
     const playAudioButton = document.getElementById('play-audio');
     const downloadAudioButton = document.getElementById('download-audio');
+    const translateAudioButton = document.getElementById('translate-audio-button'); // NEW
 
     // Other Cards
     const translationP = document.getElementById('translation');
@@ -41,12 +42,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevPageButton = document.getElementById('prev-page-button');
     const nextPageButton = document.getElementById('next-page-button');
     const pageInfoSpan = document.getElementById('page-info');
+    const translationListTbody = document.getElementById('translation-list-tbody'); // NEW
+
+    // Translation Modal Elements (NEW)
+    const translationModalElement = document.getElementById('translation-modal');
+    const translationModal = mdc.dialog.MDCDialog.attachTo(translationModalElement);
+    const modalOriginalText = document.getElementById('modal-original-text');
+    const modalTranslatedText = document.getElementById('modal-translated-text');
+    const modalSegmentTime = document.getElementById('modal-segment-time');
+
 
     // Global State
     let allVideos = [];
     let currentPage = 1;
     const videosPerPage = 5; // Number of videos to show per page in the sidebar
     let currentLoadedVideo = null; // Store the currently loaded video object
+    let allTranslationsForVideo = []; // NEW: Store translations for the current video
+
+    // --- Constants for Translation (as per task) ---
+    const FROM_LANGUAGE = 'English'; // Assuming English audio for now
+    const TO_LANGUAGE = 'Spanish'; // Translate to Spanish
+    // -------------------------------------------------
+
 
     // --- Loading & Button State Management ---
     function showLoading() {
@@ -106,11 +123,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // Disable all action buttons and audio inputs if no video is loaded
             playAudioButton.disabled = true;
             downloadAudioButton.disabled = true;
+            translateAudioButton.disabled = true; // NEW
             downloadFrameButton.disabled = true;
             speakTranslationButton.disabled = true;
             audioSegmentVideoIdInput.value = '';
             fromSecondsInput.disabled = true;
             toSecondsInput.disabled = true;
+
+            // Clear translations list
+            allTranslationsForVideo = [];
+            renderTranslationsList();
 
             return;
         }
@@ -118,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Enable all action buttons and audio inputs
         playAudioButton.disabled = false;
         downloadAudioButton.disabled = false;
+        translateAudioButton.disabled = false; // NEW
         downloadFrameButton.disabled = false;
         speakTranslationButton.disabled = false;
         fromSecondsInput.disabled = false;
@@ -196,6 +219,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const videoUrlTextField = mdc.textField.MDCTextField.attachTo(videoUrlInput.closest('.mdc-text-field'));
         videoUrlTextField.value = video.original_url;
         videoUrlTextField.layout();
+        
+        // NEW: Fetch translations for the loaded video
+        await fetchTranslationsForVideo(video.id);
     }
 
     // --- Function to render video list in sidebar ---
@@ -233,6 +259,44 @@ document.addEventListener('DOMContentLoaded', () => {
         nextPageButton.disabled = currentPage >= totalPages;
     }
 
+    // --- Function to render translations list in sidebar (NEW) ---
+    function renderTranslationsList() {
+        translationListTbody.innerHTML = ''; // Clear existing rows
+
+        if (allTranslationsForVideo.length === 0) {
+            translationListTbody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No translations for this video.</td></tr>';
+        } else {
+            allTranslationsForVideo.forEach(translation => {
+                const row = translationListTbody.insertRow();
+                row.style.cursor = 'pointer';
+                row.onclick = () => openTranslationModal(translation); // Open modal on click
+
+                const idCell = row.insertCell(0);
+                idCell.textContent = translation.id.substring(0, 8) + '...';
+
+                const langCell = row.insertCell(1);
+                langCell.textContent = `${translation.from_language}/${translation.to_language}`;
+
+                const timeCell = row.insertCell(2);
+                timeCell.textContent = `${translation.from_seconds.toFixed(0)}-${translation.to_seconds.toFixed(0)}s`;
+            });
+        }
+    }
+
+    // --- Functions for Translation Modal (NEW) ---
+    function openTranslationModal(translation) {
+        modalOriginalText.textContent = translation.original_text;
+        modalTranslatedText.textContent = translation.translated_text;
+        modalSegmentTime.textContent = `${translation.from_seconds.toFixed(1)}s to ${translation.to_seconds.toFixed(1)}s`;
+        translationModal.open();
+    }
+
+    function closeTranslationModal() {
+        translationModal.close();
+    }
+    // ---------------------------------------------
+
+
     // --- Function to fetch all videos for the sidebar ---
     async function fetchAllVideos() {
         console.log("Fetching all videos for sidebar...");
@@ -254,6 +318,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Function to fetch translations for a specific video (NEW) ---
+    async function fetchTranslationsForVideo(videoId) {
+        console.log(`Fetching translations for video ID: ${videoId}`);
+        try {
+            const response = await fetch(`/videos/${videoId}/translations`);
+            if (response.ok) {
+                const data = await response.json();
+                allTranslationsForVideo = data.translations;
+                renderTranslationsList();
+            } else {
+                const errorData = await response.json();
+                console.error(`Error fetching translations for video ${videoId}:`, errorData);
+                allTranslationsForVideo = []; // Clear list on error
+                renderTranslationsList();
+            }
+        } catch (error) {
+            console.error(`Network error fetching translations for video ${videoId}:`, error);
+            allTranslationsForVideo = []; // Clear list on network error
+            renderTranslationsList();
+        }
+    }
+
     // --- Function to load the last video from the backend ---
     async function loadLastVideo() {
         console.log("Attempting to load last video...");
@@ -264,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const video = await response.json();
                 console.log("Last video loaded:", video);
                 await loadVideoDetails(video);
-            } else if (response.status === 400) { // NoVideosError from backend
+            } else if (response.status === 404) { // NoVideosError from backend (changed to 404 in previous change)
                 console.log("No last video found.");
                 await loadVideoDetails(null); // Clear UI and show "No video" message
             } else {
@@ -285,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Disable action buttons and audio inputs initially
         playAudioButton.disabled = true;
         downloadAudioButton.disabled = true;
+        translateAudioButton.disabled = true; // NEW
         downloadFrameButton.disabled = true;
         speakTranslationButton.disabled = true;
         fromSecondsInput.disabled = true;
@@ -320,8 +407,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newVideo = await response.json();
                 console.log("Video uploaded and processed:", newVideo);
                 await loadVideoDetails(newVideo);
-                await fetchAllVideos(); // Refresh the sidebar list
-                currentPage = 1; // Go to first page of list
+                await fetchAllVideos(); // Refresh the sidebar video list
+                currentPage = 1; // Go to first page of video list
                 renderVideoList();
             } else {
                 const errorData = await response.json();
@@ -339,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Pagination Event Listeners
+    // Pagination Event Listeners for Video List
     prevPageButton.addEventListener('click', () => {
         if (currentPage > 1) {
             currentPage--;
@@ -358,10 +445,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // MOCK_API: Only keeping mock functions for features NOT covered by backend endpoints.
     const MOCK_API = {
-        translateText: (text) => new Promise(resolve => setTimeout(() => {
-            console.log("MOCK: Translating text:", text);
-            resolve("Hola, este es un texto de ejemplo en español.");
-        }, 500)),
+        // getAudioClip is removed, now using backend directly
+        // translateText is replaced by backend /videos/{video_id}/audio-segment/translate
+        // textToSpeech could eventually be a backend endpoint, but remains mock for now
         textToSpeech: (text) => new Promise(resolve => setTimeout(() => {
             console.log("MOCK: Text to speech for:", text);
             resolve(new Audio());
@@ -384,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
 
-    // Event listeners for Audio buttons (UPDATED to use new inputs)
+    // Event listeners for Audio buttons
     playAudioButton.addEventListener('click', () => {
         if (!currentLoadedVideo) {
             alert("No video loaded to play audio from.");
@@ -395,6 +481,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isNaN(fromSeconds) || isNaN(toSeconds) || fromSeconds < 0 || toSeconds <= fromSeconds) {
             alert("Please enter valid start and end times (seconds).");
+            return;
+        }
+        if (fromSeconds >= currentLoadedVideo.metadata.duration_seconds || toSeconds > currentLoadedVideo.metadata.duration_seconds) {
+            alert(`Segment is out of bounds. Video duration: ${currentLoadedVideo.metadata.duration_seconds.toFixed(1)}s.`);
             return;
         }
 
@@ -417,6 +507,10 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Please enter valid start and end times (seconds).");
             return;
         }
+        if (fromSeconds >= currentLoadedVideo.metadata.duration_seconds || toSeconds > currentLoadedVideo.metadata.duration_seconds) {
+            alert(`Segment is out of bounds. Video duration: ${currentLoadedVideo.metadata.duration_seconds.toFixed(1)}s.`);
+            return;
+        }
 
         const audioEndpointUrl = `/videos/${currentLoadedVideo.id}/audio-segment?from_seconds=${fromSeconds}&to_seconds=${toSeconds}`;
         console.log("Downloading audio from backend:", audioEndpointUrl);
@@ -429,23 +523,99 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(a); // Clean up
     });
 
+    // Event listener for the new "Translate Audio Segment" button (NEW)
+    translateAudioButton.addEventListener('click', async () => {
+        if (!currentLoadedVideo) {
+            alert("No video loaded to translate audio from.");
+            return;
+        }
+        const fromSeconds = parseFloat(fromSecondsInput.value);
+        const toSeconds = parseFloat(toSecondsInput.value);
+
+        if (isNaN(fromSeconds) || isNaN(toSeconds) || fromSeconds < 0 || toSeconds <= fromSeconds) {
+            alert("Please enter valid start and end times (seconds).");
+            return;
+        }
+        if (fromSeconds >= currentLoadedVideo.metadata.duration_seconds || toSeconds > currentLoadedVideo.metadata.duration_seconds) {
+            alert(`Segment is out of bounds. Video duration: ${currentLoadedVideo.metadata.duration_seconds.toFixed(1)}s.`);
+            return;
+        }
+
+        console.log(`Translating audio segment for video ${currentLoadedVideo.id} from ${fromSeconds}s to ${toSeconds}s.`);
+        showLoading();
+        // Disable all audio action buttons during translation
+        playAudioButton.disabled = true;
+        downloadAudioButton.disabled = true;
+        translateAudioButton.disabled = true;
+
+        try {
+            const response = await fetch(`/videos/${currentLoadedVideo.id}/audio-segment/translate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    from_seconds: fromSeconds,
+                    to_seconds: toSeconds,
+                    from_language: FROM_LANGUAGE,
+                    to_language: TO_LANGUAGE
+                }),
+            });
+
+            if (response.ok) {
+                const translationResult = await response.json();
+                console.log("Translation successful:", translationResult);
+                translationP.textContent = `Original: "${translationResult.original_text}"\nTranslated (ES): "${translationResult.translated_text}"`;
+                await fetchTranslationsForVideo(currentLoadedVideo.id); // Refresh translations list
+            } else {
+                const errorData = await response.json();
+                console.error("Error during translation:", errorData);
+                alert(`Translation failed: ${errorData.detail || response.statusText}`);
+                translationP.textContent = `Error: ${errorData.detail || 'Translation failed.'}`;
+            }
+        } catch (error) {
+            console.error("Network error during translation:", error);
+            alert('Network error during translation.');
+            translationP.textContent = 'Error: Network error during translation.';
+        } finally {
+            hideLoading();
+            // Re-enable buttons
+            playAudioButton.disabled = false;
+            downloadAudioButton.disabled = false;
+            translateAudioButton.disabled = false;
+        }
+    });
+
+
     // Event listeners for other buttons (using MOCK_API)
     speakTranslationButton.addEventListener('click', async () => {
-        const textToTranslate = ocrOutputDiv.textContent !== 'No text detected yet.' ? ocrOutputDiv.textContent : "Some default English text";
-        const translation = await MOCK_API.translateText(textToTranslate);
-        translationP.textContent = translation;
-        const audio = await MOCK_API.textToSpeech(translation);
+        if (!currentLoadedVideo) {
+            alert("No video loaded to speak translation from.");
+            return;
+        }
+        const textToSpeak = translationP.textContent.includes('Original:') ? translationP.textContent.split('\n')[1].replace('Translated (ES): "', '').slice(0, -1) : translationP.textContent;
+        if (textToSpeak === 'N/A' || textToSpeak.includes('Error:')) {
+            alert("No valid translation available to speak.");
+            return;
+        }
+        const audio = await MOCK_API.textToSpeech(textToSpeak);
         audio.play();
         console.log("Speaking mock translation.");
     });
 
     downloadFrameButton.addEventListener('click', async () => {
+        if (!currentLoadedVideo) {
+            alert("No video loaded to download frame from.");
+            return;
+        }
         const currentFrameSrc = firstFrameImg.src;
         if (currentFrameSrc && currentFrameSrc.startsWith('blob:')) { // Check if it's a blob URL
             const a = document.createElement('a');
             a.href = currentFrameSrc;
-            a.download = 'first-frame.png';
+            a.download = `first-frame-${currentLoadedVideo.id}.png`;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
             console.log("Downloading current first frame.");
         } else {
             alert("No frame image available to download.");
