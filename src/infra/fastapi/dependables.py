@@ -50,3 +50,8 @@ def get_translation_service(
     return TranslationService(
         session=session, video_service=video_service, translator=translator
     )
+
+
+TranslationServiceDependable = Annotated[
+    TranslationService, Depends(get_translation_service)
+]
