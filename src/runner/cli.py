@@ -8,6 +8,7 @@ from typer import Typer
 
 from src.infra.downloaders.http import HttpVideoDownloader
 from src.infra.fastapi.index import index_router
+from src.infra.fastapi.translations import translation_router
 from src.infra.fastapi.videos import video_router
 from src.infra.translators.gemini import GeminiTranslator
 from src.runner.config import connector
@@ -51,5 +52,6 @@ def get_app() -> FastAPI:
 
     app.include_router(index_router)
     app.include_router(video_router)
+    app.include_router(translation_router)
 
     return app

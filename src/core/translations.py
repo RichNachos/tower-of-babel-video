@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import BinaryIO, Protocol
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, String, func
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, String, func, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from src.core import Base
@@ -69,6 +69,28 @@ class TranslationService:
     video_service: VideoService
     translator: Translator
 
+    def get_translations(self) -> list[Translation]:
+        return list(self.session.scalars(select(Translation)).all())
+
+    def get_translation(self, translation_id: str) -> Translation:
+        translation = self.session.scalars(
+            select(Translation).where(Translation.id == translation_id)
+        ).one_or_none()
+
+        if not translation:
+            raise TranslationNotFoundError(
+                f"Translation with id {translation_id} not found."
+            )
+
+        return translation
+
+    def get_translations_by_video(self, video_id: str) -> list[Translation]:
+        return list(
+            self.session.scalars(
+                select(Translation).where(Translation.video_id == video_id)
+            ).all()
+        )
+
     def translate_audio_segment(
         self,
         video_id: str,
@@ -104,6 +126,10 @@ class TranslationService:
         self.session.add(translation)
         self.session.flush()
         return translation
+
+
+class TranslationNotFoundError(Exception):
+    pass
 
 
 @dataclass
