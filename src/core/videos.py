@@ -4,6 +4,7 @@ import enum
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Protocol
 
 from sqlalchemy import DateTime, Enum, String, desc, func, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
@@ -55,6 +56,17 @@ class VideoService:
             raise NoVideosError("No videos have been added yet.")
 
         return video
+
+
+@dataclass
+class VideoDownloader(Protocol):
+    def download_video(
+        self,
+        url: str,
+        local_path: str,
+        video_id: str,
+        video_type: VideoType = VideoType.MP4,
+    ) -> None: ...
 
 
 class NoVideosError(Exception):
