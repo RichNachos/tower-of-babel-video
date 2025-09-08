@@ -6,7 +6,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel, HttpUrl, field_validator
 
-from src.core.translations import Language
+from src.core.translations import Language, TranslatorError
 from src.core.videos import (
     AudioExtractionError,
     NoVideosError,
@@ -16,7 +16,10 @@ from src.core.videos import (
 )
 from src.core.videos import Video as CoreVideo
 from src.core.videos import VideoMetadata as CoreVideoMetadata
-from src.infra.fastapi.dependables import VideoServiceDependable
+from src.infra.fastapi.dependables import (
+    TranslationServiceDependable,
+    VideoServiceDependable,
+)
 
 video_router = APIRouter(tags=["Videos"])
 
@@ -171,6 +174,27 @@ class TranslationResponse(BaseModel):
 )
 def translate_audio_segment(
     request: TranslationRequest,
-    service: TranslationServiceDependable,
+    video_service: VideoServiceDependable,
+    translation_service: TranslationServiceDependable,
 ) -> TranslationResponse:
-    
+    try:
+        video = video_service.get_video(request.video_id)
+    except VideoNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+    try:
+        translation = translation_service.translate_audio_segment(
+            video.id,
+            video.video_type,
+            request.from_seconds,
+            request.to_seconds,
+            request.from_language,
+            request.to_language,
+        )
+    except TranslatorError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    return TranslationResponse(
+        original_text=translation.original_text,
+        translated_text=translation.translated_text,
+    )
