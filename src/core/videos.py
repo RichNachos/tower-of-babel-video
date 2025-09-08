@@ -41,11 +41,18 @@ class Video(Base):
 @dataclass
 class VideoService:
     session: Session
+    video_downloader: VideoDownloader
 
     def get_videos(self) -> list[Video]:
         return list(self.session.scalars(select(Video)).all())
 
     def add_video(self, video: Video) -> Video:
+        self.video_downloader.download_video(
+            url=video.original_url,
+            local_path=Path("data/videos"),
+            video_id=video.id,
+            video_type=video.video_type,
+        )
         self.session.add(video)
         self.session.flush()
         return self.get_video(video.id)
@@ -75,7 +82,6 @@ class VideoService:
         return video[-1]
 
 
-@dataclass
 class VideoDownloader(Protocol):
     def download_video(
         self,
@@ -84,6 +90,10 @@ class VideoDownloader(Protocol):
         video_id: str,
         video_type: VideoType = VideoType.MP4,
     ) -> None: ...
+
+
+class VideoDownloadError(Exception):
+    pass
 
 
 class NoVideosError(Exception):

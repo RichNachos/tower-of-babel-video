@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from src.core.base import Connector
 from src.core.videos import (
+    VideoDownloader,
     VideoService,
 )
 
@@ -26,10 +27,14 @@ def get_session(connector: ConnectorDependable) -> Generator[Session]:
 
 
 SessionDependable = Annotated[Session, Depends(get_session)]
+VideoDownloaderDependable = Annotated[VideoDownloader, inject("video_downloader")]
 
 
-def get_video_service(session: SessionDependable) -> VideoService:
-    return VideoService(session=session)
+def get_video_service(
+    session: SessionDependable,
+    video_downloader: VideoDownloaderDependable,
+) -> VideoService:
+    return VideoService(session=session, video_downloader=video_downloader)
 
 
 VideoServiceDependable = Annotated[VideoService, Depends(get_video_service)]

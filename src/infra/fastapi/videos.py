@@ -3,11 +3,11 @@ from __future__ import annotations
 import os
 from datetime import datetime
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, HttpUrl, field_validator
 
 from src.core.videos import Video as CoreVideo
-from src.core.videos import VideoType
+from src.core.videos import VideoDownloadError, VideoType
 from src.infra.fastapi.dependables import VideoServiceDependable
 
 video_router = APIRouter(tags=["Videos"])
@@ -43,7 +43,10 @@ class Videos(BaseModel):
 
 @video_router.post("/upload-video", status_code=status.HTTP_200_OK)
 def upload_video(request: UploadVideo, service: VideoServiceDependable) -> Video:
-    video = service.add_video(CoreVideo(original_url=str(request.video_url)))
+    try:
+        video = service.add_video(CoreVideo(original_url=str(request.video_url)))
+    except VideoDownloadError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     return Video(
         id=video.id,

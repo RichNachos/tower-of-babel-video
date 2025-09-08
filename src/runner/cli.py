@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from typer import Typer
 
+from src.infra.downloaders.http import HttpVideoDownloader
 from src.infra.fastapi.index import index_router
 from src.infra.fastapi.videos import video_router
 from src.runner.config import connector
@@ -29,6 +30,7 @@ def run(
 def get_app() -> FastAPI:
     app = FastAPI()
     app.state.db = connector()
+    app.state.video_downloader = HttpVideoDownloader()
 
     app.mount(
         "/static",
