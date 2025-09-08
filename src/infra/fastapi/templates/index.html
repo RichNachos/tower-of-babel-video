@@ -59,10 +59,14 @@
       <div class="app-layout">
         <!-- Sidebar for Latest Videos -->
         <div class="sidebar">
-          <div class="mdc-card" style="flex-grow: 1; display: flex; flex-direction: column;">
-            <div class="mdc-card__primary-action" style="flex-grow: 1;">
+          <div
+            class="mdc-card"
+            style="flex-grow: 1; display: flex; flex-direction: column"
+          >
+            <div class="mdc-card__primary-action" style="flex-grow: 1">
               <h2 class="mdc-typography--headline6">Latest Uploaded Videos</h2>
-              <div style="max-height: 400px; overflow-y: auto;"> <!-- Scrollable area for video list -->
+              <div style="max-height: 400px; overflow-y: auto">
+                <!-- Scrollable area for video list -->
                 <table class="video-list-table">
                   <thead>
                     <tr>
@@ -73,23 +77,41 @@
                   </thead>
                   <tbody id="video-list-tbody">
                     <!-- Video rows will be inserted here by JavaScript -->
-                    <tr><td colspan="3" style="text-align: center;">Loading videos...</td></tr>
+                    <tr>
+                      <td colspan="3" style="text-align: center">
+                        Loading videos...
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
             </div>
             <div class="mdc-card__actions pagination-controls">
-                <button class="mdc-button mdc-button--outlined" id="prev-page-button" disabled>
-                    <span class="mdc-button__ripple"></span>
-                    <i class="material-icons mdc-button__icon" aria-hidden="true">arrow_back_ios</i>
-                    <span class="mdc-button__label">Prev</span>
-                </button>
-                <span id="page-info" class="mdc-typography--body2">Page 1 of 1</span>
-                <button class="mdc-button mdc-button--outlined" id="next-page-button" disabled>
-                    <span class="mdc-button__ripple"></span>
-                    <i class="material-icons mdc-button__icon" aria-hidden="true">arrow_forward_ios</i>
-                    <span class="mdc-button__label">Next</span>
-                </button>
+              <button
+                class="mdc-button mdc-button--outlined"
+                id="prev-page-button"
+                disabled
+              >
+                <span class="mdc-button__ripple"></span>
+                <i class="material-icons mdc-button__icon" aria-hidden="true"
+                  >arrow_back_ios</i
+                >
+                <span class="mdc-button__label">Prev</span>
+              </button>
+              <span id="page-info" class="mdc-typography--body2"
+                >Page 1 of 1</span
+              >
+              <button
+                class="mdc-button mdc-button--outlined"
+                id="next-page-button"
+                disabled
+              >
+                <span class="mdc-button__ripple"></span>
+                <i class="material-icons mdc-button__icon" aria-hidden="true"
+                  >arrow_forward_ios</i
+                >
+                <span class="mdc-button__label">Next</span>
+              </button>
             </div>
           </div>
         </div>
@@ -97,18 +119,26 @@
         <!-- Main Content (right side) -->
         <div class="main-content">
           <!-- Loading Bar -->
-          <div role="progressbar" class="mdc-linear-progress mdc-linear-progress--indeterminate" id="loading-bar" style="display:none;">
+          <div
+            role="progressbar"
+            class="mdc-linear-progress mdc-linear-progress--indeterminate"
+            id="loading-bar"
+            style="display: none"
+          >
             <div class="mdc-linear-progress__buffer">
               <div class="mdc-linear-progress__buffer-bar"></div>
             </div>
-            <div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
+            <div
+              class="mdc-linear-progress__bar mdc-linear-progress__primary-bar"
+            >
               <span class="mdc-linear-progress__bar-inner"></span>
             </div>
-            <div class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar">
+            <div
+              class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar"
+            >
               <span class="mdc-linear-progress__bar-inner"></span>
             </div>
           </div>
-
 
           <!-- Video URL Input Card -->
           <div class="mdc-card">
@@ -143,9 +173,7 @@
                   id="process-video"
                 >
                   <span class="mdc-button__ripple"></span>
-                  <i
-                    class="material-icons mdc-button__icon"
-                    aria-hidden="true"
+                  <i class="material-icons mdc-button__icon" aria-hidden="true"
                     >play_circle_filled</i
                   >
                   <span class="mdc-button__label">Process Video</span>
@@ -158,13 +186,39 @@
           <div class="mdc-card">
             <div class="mdc-card__primary-action">
               <h2 class="mdc-typography--headline6">Loaded Video</h2>
-              <div id="video-player-display" style="text-align: center; min-height: 200px; display: flex; align-items: center; justify-content: center; background-color: #f0f0f0; border-radius: 4px;">
-                  <video id="video-player" controls autoplay style="width: 100%; max-height: 400px; display: none; border-radius: 4px;"></video>
-                  <p id="no-video-message" class="mdc-typography--body1" style="color: #757575;">No video loaded. Upload one!</p>
+              <div
+                id="video-player-display"
+                style="
+                  text-align: center;
+                  min-height: 200px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  background-color: #f0f0f0;
+                  border-radius: 4px;
+                "
+              >
+                <video
+                  id="video-player"
+                  controls
+                  autoplay
+                  style="
+                    width: 100%;
+                    max-height: 400px;
+                    display: none;
+                    border-radius: 4px;
+                  "
+                ></video>
+                <p
+                  id="no-video-message"
+                  class="mdc-typography--body1"
+                  style="color: #757575"
+                >
+                  No video loaded. Upload one!
+                </p>
               </div>
             </div>
           </div>
-
 
           <!-- Video Details Card -->
           <div class="mdc-card">
@@ -177,7 +231,13 @@
                 </p>
                 <p>
                   <strong>Original URL:</strong>
-                  <a id="original-url" href="#" target="_blank" rel="noopener noreferrer">N/A</a>
+                  <a
+                    id="original-url"
+                    href="#"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >N/A</a
+                  >
                 </p>
                 <p>
                   <strong>Video Type:</strong>
@@ -193,7 +253,8 @@
                 </p>
                 <p>
                   <strong>Dimensions:</strong>
-                  <span id="width">N/A</span> x <span id="height">N/A</span> pixels
+                  <span id="width">N/A</span> x
+                  <span id="height">N/A</span> pixels
                 </p>
               </div>
             </div>
@@ -208,6 +269,88 @@
                   Play a specific audio segment or download the full extracted
                   audio track.
                 </p>
+                <div
+                  style="
+                    display: flex;
+                    align-items: flex-end;
+                    gap: 10px;
+                    margin-top: 15px;
+                    flex-wrap: wrap;
+                  "
+                >
+                  <div
+                    class="mdc-text-field mdc-text-field--outlined mdc-text-field--disabled"
+                    style="width: 50%"
+                  >
+                    <input
+                      type="text"
+                      id="audio-segment-video-id"
+                      class="mdc-text-field__input"
+                      aria-labelledby="audio-video-id-label"
+                      disabled
+                    />
+                    <div class="mdc-notched-outline">
+                      <div class="mdc-notched-outline__leading"></div>
+                      <div class="mdc-notched-outline__notch">
+                        <label
+                          for="audio-segment-video-id"
+                          class="mdc-floating-label"
+                          id="audio-video-id-label"
+                          >Video ID</label
+                        >
+                      </div>
+                      <div class="mdc-notched-outline__trailing"></div>
+                    </div>
+                  </div>
+                  <div
+                    class="mdc-text-field mdc-text-field--outlined"
+                    style="width: 11%"
+                  >
+                    <input
+                      type="number"
+                      id="from-seconds"
+                      class="mdc-text-field__input"
+                      aria-labelledby="from-seconds-label"
+                      value="30"
+                    />
+                    <div class="mdc-notched-outline">
+                      <div class="mdc-notched-outline__leading"></div>
+                      <div class="mdc-notched-outline__notch">
+                        <label
+                          for="from-seconds"
+                          class="mdc-floating-label"
+                          id="from-seconds-label"
+                          >Start (s)</label
+                        >
+                      </div>
+                      <div class="mdc-notched-outline__trailing"></div>
+                    </div>
+                  </div>
+                  <div
+                    class="mdc-text-field mdc-text-field--outlined"
+                    style="width: 11%"
+                  >
+                    <input
+                      type="number"
+                      id="to-seconds"
+                      class="mdc-text-field__input"
+                      aria-labelledby="to-seconds-label"
+                      value="45"
+                    />
+                    <div class="mdc-notched-outline">
+                      <div class="mdc-notched-outline__leading"></div>
+                      <div class="mdc-notched-outline__notch">
+                        <label
+                          for="to-seconds"
+                          class="mdc-floating-label"
+                          id="to-seconds-label"
+                          >End (s)</label
+                        >
+                      </div>
+                      <div class="mdc-notched-outline__trailing"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="mdc-card__actions">
@@ -215,28 +358,24 @@
                 <button
                   class="mdc-button mdc-button--outlined mdc-button--leading-icon"
                   id="play-audio"
+                  disabled
                 >
                   <span class="mdc-button__ripple"></span>
-                  <i
-                    class="material-icons mdc-button__icon"
-                    aria-hidden="true"
+                  <i class="material-icons mdc-button__icon" aria-hidden="true"
                     >volume_up</i
                   >
-                  <span class="mdc-button__label"
-                    >Play Audio (0:30 - 0:45)</span
-                  >
+                  <span class="mdc-button__label">Play Audio Segment</span>
                 </button>
                 <button
                   class="mdc-button mdc-button--outlined mdc-button--leading-icon"
                   id="download-audio"
+                  disabled
                 >
                   <span class="mdc-button__ripple"></span>
-                  <i
-                    class="material-icons mdc-button__icon"
-                    aria-hidden="true"
+                  <i class="material-icons mdc-button__icon" aria-hidden="true"
                     >file_download</i
                   >
-                  <span class="mdc-button__label">Download Audio</span>
+                  <span class="mdc-button__label">Download Audio Segment</span>
                 </button>
               </div>
             </div>
@@ -255,11 +394,10 @@
                 <button
                   class="mdc-button mdc-button--raised mdc-button--leading-icon"
                   id="speak-translation"
+                  disabled
                 >
                   <span class="mdc-button__ripple"></span>
-                  <i
-                    class="material-icons mdc-button__icon"
-                    aria-hidden="true"
+                  <i class="material-icons mdc-button__icon" aria-hidden="true"
                     >record_voice_over</i
                   >
                   <span class="mdc-button__label">Speak Translation</span>
@@ -276,7 +414,16 @@
                 id="first-frame"
                 src=""
                 alt="First frame of the video"
-                style="width: 100%; height: auto; max-height: 400px; object-fit: contain; border-radius: 4px; margin-top: 15px; border: 1px solid #e0e0e0; display: none"
+                style="
+                  width: 100%;
+                  height: auto;
+                  max-height: 400px;
+                  object-fit: contain;
+                  border-radius: 4px;
+                  margin-top: 15px;
+                  border: 1px solid #e0e0e0;
+                  display: none;
+                "
               />
             </div>
             <div class="mdc-card__actions">
@@ -284,11 +431,10 @@
                 <button
                   class="mdc-button mdc-button--outlined mdc-button--leading-icon"
                   id="download-frame"
+                  disabled
                 >
                   <span class="mdc-button__ripple"></span>
-                  <i
-                    class="material-icons mdc-button__icon"
-                    aria-hidden="true"
+                  <i class="material-icons mdc-button__icon" aria-hidden="true"
                     >wallpaper</i
                   >
                   <span class="mdc-button__label">Download Frame</span>

@@ -22,9 +22,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const widthSpan = document.getElementById('width');
     const heightSpan = document.getElementById('height');
 
-    // Other Cards
+    // Audio Controls (NEW/UPDATED)
+    const audioSegmentVideoIdInput = document.getElementById('audio-segment-video-id');
+    const fromSecondsInput = document.getElementById('from-seconds');
+    const toSecondsInput = document.getElementById('to-seconds');
     const playAudioButton = document.getElementById('play-audio');
     const downloadAudioButton = document.getElementById('download-audio');
+
+    // Other Cards
     const translationP = document.getElementById('translation');
     const speakTranslationButton = document.getElementById('speak-translation');
     const firstFrameImg = document.getElementById('first-frame');
@@ -37,10 +42,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextPageButton = document.getElementById('next-page-button');
     const pageInfoSpan = document.getElementById('page-info');
 
-    // Global State for Pagination
+    // Global State
     let allVideos = [];
     let currentPage = 1;
     const videosPerPage = 5; // Number of videos to show per page in the sidebar
+    let currentLoadedVideo = null; // Store the currently loaded video object
 
     // --- Loading & Button State Management ---
     function showLoading() {
@@ -74,6 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Function to update the UI with video details ---
     async function loadVideoDetails(video) {
+        currentLoadedVideo = video; // Set the globally loaded video
+
         if (!video) {
             displayVideoPlayerMessage('No video loaded. Upload one!', false);
             // Clear all video information fields
@@ -94,8 +102,27 @@ document.addEventListener('DOMContentLoaded', () => {
             const videoUrlTextField = mdc.textField.MDCTextField.attachTo(videoUrlInput.closest('.mdc-text-field'));
             videoUrlTextField.value = '';
             videoUrlTextField.layout();
+
+            // Disable all action buttons and audio inputs if no video is loaded
+            playAudioButton.disabled = true;
+            downloadAudioButton.disabled = true;
+            downloadFrameButton.disabled = true;
+            speakTranslationButton.disabled = true;
+            audioSegmentVideoIdInput.value = '';
+            fromSecondsInput.disabled = true;
+            toSecondsInput.disabled = true;
+
             return;
         }
+
+        // Enable all action buttons and audio inputs
+        playAudioButton.disabled = false;
+        downloadAudioButton.disabled = false;
+        downloadFrameButton.disabled = false;
+        speakTranslationButton.disabled = false;
+        fromSecondsInput.disabled = false;
+        toSecondsInput.disabled = false;
+
 
         // Hide "No video" message and show player
         noVideoMessage.style.display = 'none';
@@ -115,17 +142,38 @@ document.addEventListener('DOMContentLoaded', () => {
         videoTypeSpan.textContent = video.video_type.toUpperCase();
         uploadedAtSpan.textContent = new Date(video.created_at).toLocaleString(); // Nicer date format
 
-        // --- UPDATED: Get metadata directly from the video object ---
+        // Get metadata directly from the video object (from updated API)
         if (video.metadata) {
             durationSpan.textContent = video.metadata.duration_seconds !== null && video.metadata.duration_seconds !== undefined ? `${video.metadata.duration_seconds.toFixed(1)}` : 'N/A';
             widthSpan.textContent = video.metadata.width !== null && video.metadata.width !== undefined ? video.metadata.width : 'N/A';
             heightSpan.textContent = video.metadata.height !== null && video.metadata.height !== undefined ? video.metadata.height : 'N/A';
+            
+            // Set audio segment inputs based on video metadata or defaults
+            audioSegmentVideoIdInput.value = video.id;
+            fromSecondsInput.value = 30; // Default start
+            toSecondsInput.value = 45; // Default end
+            // Adjust toSeconds if default is beyond video duration
+            if (toSecondsInput.value > video.metadata.duration_seconds) {
+                toSecondsInput.value = Math.floor(video.metadata.duration_seconds);
+            }
+            if (fromSecondsInput.value >= toSecondsInput.value && video.metadata.duration_seconds > 0) {
+                 fromSecondsInput.value = 0; // If range is invalid, reset to 0
+                 toSecondsInput.value = Math.min(15, Math.floor(video.metadata.duration_seconds)); // Default to 15s or total duration
+            }
+
         } else {
             durationSpan.textContent = 'N/A';
             widthSpan.textContent = 'N/A';
             heightSpan.textContent = 'N/A';
+            audioSegmentVideoIdInput.value = '';
+            fromSecondsInput.value = 0;
+            toSecondsInput.value = 0;
         }
-        // --- END UPDATED METADATA POPULATION ---
+
+        // Update MDC text field states for the new audio controls
+        mdc.textField.MDCTextField.attachTo(audioSegmentVideoIdInput.closest('.mdc-text-field')).layout();
+        mdc.textField.MDCTextField.attachTo(fromSecondsInput.closest('.mdc-text-field')).layout();
+        mdc.textField.MDCTextField.attachTo(toSecondsInput.closest('.mdc-text-field')).layout();
 
 
         // MOCK_API calls for first frame and OCR (assuming these are separate processes/endpoints)
@@ -234,6 +282,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initial Load and Event Listeners ---
     async function initUI() {
+        // Disable action buttons and audio inputs initially
+        playAudioButton.disabled = true;
+        downloadAudioButton.disabled = true;
+        downloadFrameButton.disabled = true;
+        speakTranslationButton.disabled = true;
+        fromSecondsInput.disabled = true;
+        toSecondsInput.disabled = true;
+
         await loadLastVideo(); // Load last video first
         await fetchAllVideos(); // Then load all videos for the sidebar
     }
@@ -301,13 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // MOCK_API: Only keeping mock functions for features NOT covered by backend endpoints.
-    // getVideoDetails is now completely removed as the backend provides it.
     const MOCK_API = {
-        getAudioClip: (url) => new Promise(resolve => setTimeout(() => {
-            console.log("MOCK: Getting audio clip for", url);
-            const dummyAudioData = new Uint8Array([0x4F, 0x67, 0x67, 0x53, 0x00, 0x02, 0x00, 0x00]);
-            resolve(new Blob([dummyAudioData], { type: 'audio/ogg' }));
-        }, 500)),
         translateText: (text) => new Promise(resolve => setTimeout(() => {
             console.log("MOCK: Translating text:", text);
             resolve("Hola, este es un texto de ejemplo en español.");
@@ -334,24 +384,52 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
 
-    // Event listeners for other buttons (using MOCK_API as no backend endpoints provided for these)
-    playAudioButton.addEventListener('click', async () => {
-        const audioClip = await MOCK_API.getAudioClip('current_video_audio_url_mock');
-        const audio = new Audio(URL.createObjectURL(audioClip));
-        audio.currentTime = 0;
-        audio.play();
-        console.log("Playing mock audio.");
+    // Event listeners for Audio buttons (UPDATED to use new inputs)
+    playAudioButton.addEventListener('click', () => {
+        if (!currentLoadedVideo) {
+            alert("No video loaded to play audio from.");
+            return;
+        }
+        const fromSeconds = parseFloat(fromSecondsInput.value);
+        const toSeconds = parseFloat(toSecondsInput.value);
+
+        if (isNaN(fromSeconds) || isNaN(toSeconds) || fromSeconds < 0 || toSeconds <= fromSeconds) {
+            alert("Please enter valid start and end times (seconds).");
+            return;
+        }
+
+        const audioEndpointUrl = `/videos/${currentLoadedVideo.id}/audio-segment?from_seconds=${fromSeconds}&to_seconds=${toSeconds}`;
+        console.log("Playing audio from backend:", audioEndpointUrl);
+
+        const audio = new Audio(audioEndpointUrl);
+        audio.play().catch(e => console.error("Error playing audio:", e));
     });
 
-    downloadAudioButton.addEventListener('click', async () => {
-        const audioClip = await MOCK_API.getAudioClip('current_video_audio_url_mock');
+    downloadAudioButton.addEventListener('click', () => {
+        if (!currentLoadedVideo) {
+            alert("No video loaded to download audio from.");
+            return;
+        }
+        const fromSeconds = parseFloat(fromSecondsInput.value);
+        const toSeconds = parseFloat(toSecondsInput.value);
+
+        if (isNaN(fromSeconds) || isNaN(toSeconds) || fromSeconds < 0 || toSeconds <= fromSeconds) {
+            alert("Please enter valid start and end times (seconds).");
+            return;
+        }
+
+        const audioEndpointUrl = `/videos/${currentLoadedVideo.id}/audio-segment?from_seconds=${fromSeconds}&to_seconds=${toSeconds}`;
+        console.log("Downloading audio from backend:", audioEndpointUrl);
+
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(audioClip);
-        a.download = 'audio-clip.ogg';
+        a.href = audioEndpointUrl;
+        a.download = `audio-segment-${currentLoadedVideo.id}_${fromSeconds}-${toSeconds}.wav`; // Suggest .wav
+        document.body.appendChild(a); // Append to body to make it clickable
         a.click();
-        console.log("Downloading mock audio.");
+        document.body.removeChild(a); // Clean up
     });
 
+    // Event listeners for other buttons (using MOCK_API)
     speakTranslationButton.addEventListener('click', async () => {
         const textToTranslate = ocrOutputDiv.textContent !== 'No text detected yet.' ? ocrOutputDiv.textContent : "Some default English text";
         const translation = await MOCK_API.translateText(textToTranslate);
