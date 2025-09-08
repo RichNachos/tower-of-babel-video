@@ -11,7 +11,8 @@ dependencies = [
     "uvicorn",
     "alembic",
     "google-genai",
-    "python-dotenv"
+    "python-dotenv",
+    "jinja2",
 ]
 
 [dependency-groups]
