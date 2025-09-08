@@ -155,7 +155,6 @@ def get_audio_segment(
 
 
 class TranslationRequest(BaseModel):
-    video_id: str
     from_language: Language
     to_language: Language
     from_seconds: float
@@ -170,15 +169,15 @@ class TranslationResponse(BaseModel):
 @video_router.post(
     "/videos/{video_id}/audio-segment/translate",
     status_code=status.HTTP_200_OK,
-    response_class=Response,
 )
 def translate_audio_segment(
+    video_id: str,
     request: TranslationRequest,
     video_service: VideoServiceDependable,
     translation_service: TranslationServiceDependable,
 ) -> TranslationResponse:
     try:
-        video = video_service.get_video(request.video_id)
+        video = video_service.get_video(video_id)
     except VideoNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
