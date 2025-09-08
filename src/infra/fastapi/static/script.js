@@ -115,20 +115,20 @@ document.addEventListener('DOMContentLoaded', () => {
         videoTypeSpan.textContent = video.video_type.toUpperCase();
         uploadedAtSpan.textContent = new Date(video.created_at).toLocaleString(); // Nicer date format
 
-        // MOCK_API calls for duration, width, height (assuming these are not in your backend /videos response)
-        try {
-            const videoDetails = await MOCK_API.getVideoDetails(video.original_url);
-            durationSpan.textContent = videoDetails.duration;
-            widthSpan.textContent = videoDetails.width;
-            heightSpan.textContent = videoDetails.height;
-        } catch (error) {
-            console.error("Could not fetch video details from mock API:", error);
+        // --- UPDATED: Get metadata directly from the video object ---
+        if (video.metadata) {
+            durationSpan.textContent = video.metadata.duration_seconds !== null && video.metadata.duration_seconds !== undefined ? `${video.metadata.duration_seconds.toFixed(1)}` : 'N/A';
+            widthSpan.textContent = video.metadata.width !== null && video.metadata.width !== undefined ? video.metadata.width : 'N/A';
+            heightSpan.textContent = video.metadata.height !== null && video.metadata.height !== undefined ? video.metadata.height : 'N/A';
+        } else {
             durationSpan.textContent = 'N/A';
             widthSpan.textContent = 'N/A';
             heightSpan.textContent = 'N/A';
         }
+        // --- END UPDATED METADATA POPULATION ---
 
-        // MOCK_API calls for first frame and OCR
+
+        // MOCK_API calls for first frame and OCR (assuming these are separate processes/endpoints)
         try {
             const firstFrame = await MOCK_API.getFirstFrame(video.original_url);
             firstFrameImg.src = URL.createObjectURL(firstFrame);
@@ -300,23 +300,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
-    // MOCK_API for features not directly implemented by provided backend endpoints
+    // MOCK_API: Only keeping mock functions for features NOT covered by backend endpoints.
+    // getVideoDetails is now completely removed as the backend provides it.
     const MOCK_API = {
-        getVideoDetails: (url) => new Promise(resolve => setTimeout(() => {
-            console.log("MOCK: Getting video details for", url);
-            // Generate dynamic values based on the URL (or a hash of it)
-            // This makes it visually clear that the values are updating.
-            const hash = Array.from(url).reduce((acc, char) => acc + char.charCodeAt(0), 0);
-            const duration = (hash % 100) + 60 + Math.random(); // 60-160 seconds
-            const height = (hash % 3) === 0 ? 720 : ((hash % 3) === 1 ? 1080 : 1440); // 720p, 1080p, 1440p
-            const width = Math.round(height * (16 / 9)); // Common aspect ratio
-
-            resolve({ 
-                duration: duration.toFixed(1), // One decimal place
-                height: height, 
-                width: width 
-            });
-        }, 500)),
         getAudioClip: (url) => new Promise(resolve => setTimeout(() => {
             console.log("MOCK: Getting audio clip for", url);
             const dummyAudioData = new Uint8Array([0x4F, 0x67, 0x67, 0x53, 0x00, 0x02, 0x00, 0x00]);
