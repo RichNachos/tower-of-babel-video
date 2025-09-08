@@ -48,7 +48,7 @@ class VideoService:
     def add_video(self, video: Video) -> Video:
         self.session.add(video)
         self.session.flush()
-        return self.get_last_video()
+        return self.get_video(video.id)
 
     def get_video(self, video_id: str) -> Video:
         video = self.session.scalars(
