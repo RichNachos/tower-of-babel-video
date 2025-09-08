@@ -28,7 +28,7 @@ body {
     gap: 20px; /* Space between sidebar and main content */
 }
 .sidebar {
-    flex: 0 0 300px; /* Fixed width for sidebar */
+    flex: 0 0 30%; /* Fixed width for sidebar */
     min-width: 250px;
     background-color: #f5f5f5; /* Light background for sidebar */
     border-radius: 8px;
@@ -41,7 +41,7 @@ body {
 }
 .main-content {
     flex-grow: 1; /* Main content takes remaining space */
-    min-width: 500px; /* Minimum width for main content */
+    min-width: 70%; /* Minimum width for main content */
     display: flex;
     flex-direction: column;
 }
