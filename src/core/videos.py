@@ -4,6 +4,7 @@ import enum
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Protocol
 
 from sqlalchemy import DateTime, Enum, String, desc, func, select
@@ -63,7 +64,7 @@ class VideoDownloader(Protocol):
     def download_video(
         self,
         url: str,
-        local_path: str,
+        local_path: Path,
         video_id: str,
         video_type: VideoType = VideoType.MP4,
     ) -> None: ...
