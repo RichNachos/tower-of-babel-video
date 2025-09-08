@@ -133,7 +133,7 @@ def get_audio_segment(
     service: VideoServiceDependable,
 ) -> Response:
     try:
-        video = service.get_video(video_id)  # Get video details to find its type
+        video = service.get_video(video_id)
 
         audio_stream = service.extract_audio_segment(
             video_id=video.id,
@@ -142,7 +142,6 @@ def get_audio_segment(
             to_seconds=to_seconds,
         )
 
-        # Return the audio stream as a Response with the appropriate media type
         return Response(content=audio_stream.read(), media_type="audio/wav")
 
     except VideoNotFoundError as e:
