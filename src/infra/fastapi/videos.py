@@ -41,7 +41,7 @@ class Videos(BaseModel):
     videos: list[Video]
 
 
-@video_router.post("/upload-video", status_code=status.HTTP_200_OK)
+@video_router.post("/videos", status_code=status.HTTP_200_OK)
 def upload_video(request: UploadVideo, service: VideoServiceDependable) -> Video:
     try:
         video = service.add_video(CoreVideo(original_url=str(request.video_url)))
