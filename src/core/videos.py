@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Protocol
 
+from moviepy import VideoFileClip
 from sqlalchemy import DateTime, Enum, String, desc, func, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
@@ -36,6 +37,13 @@ class Video(Base):
         server_default=func.now(),
         init=False,
     )
+
+
+@dataclass
+class VideoMetadata:
+    duration_sec: float
+    width: int
+    height: int
 
 
 @dataclass
@@ -80,6 +88,20 @@ class VideoService:
             raise NoVideosError("No videos have been added yet.")
 
         return video[-1]
+
+    def extract_video_metadata(
+        self, video_id: str, video_type: VideoType = VideoType.MP4
+    ) -> VideoMetadata:
+        clip = VideoFileClip(f"data/videos/{video_id}.{video_type.value}")
+        duration_seconds = clip.duration
+        width = clip.w
+        height = clip.h
+
+        return VideoMetadata(
+            duration_seconds,
+            width,
+            height,
+        )
 
 
 class VideoDownloader(Protocol):

@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const videoTypeSpan = document.getElementById('video-type');
     const uploadedAtSpan = document.getElementById('uploaded-at');
     const durationSpan = document.getElementById('duration');
-    const widthSpan = document.getElementById('width'); // New
+    const widthSpan = document.getElementById('width');
     const heightSpan = document.getElementById('height');
 
     // Other Cards
@@ -304,8 +304,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const MOCK_API = {
         getVideoDetails: (url) => new Promise(resolve => setTimeout(() => {
             console.log("MOCK: Getting video details for", url);
-            // Added width to mock response
-            resolve({ duration: 125.7, height: 1080, width: 1920 });
+            // Generate dynamic values based on the URL (or a hash of it)
+            // This makes it visually clear that the values are updating.
+            const hash = Array.from(url).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const duration = (hash % 100) + 60 + Math.random(); // 60-160 seconds
+            const height = (hash % 3) === 0 ? 720 : ((hash % 3) === 1 ? 1080 : 1440); // 720p, 1080p, 1440p
+            const width = Math.round(height * (16 / 9)); // Common aspect ratio
+
+            resolve({ 
+                duration: duration.toFixed(1), // One decimal place
+                height: height, 
+                width: width 
+            });
         }, 500)),
         getAudioClip: (url) => new Promise(resolve => setTimeout(() => {
             console.log("MOCK: Getting audio clip for", url);

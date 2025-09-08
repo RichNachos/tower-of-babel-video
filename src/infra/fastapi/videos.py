@@ -8,6 +8,7 @@ from pydantic import BaseModel, HttpUrl, field_validator
 
 from src.core.videos import NoVideosError, VideoDownloadError, VideoType
 from src.core.videos import Video as CoreVideo
+from src.core.videos import VideoMetadata as CoreVideoMetadata
 from src.infra.fastapi.dependables import VideoServiceDependable
 
 video_router = APIRouter(tags=["Videos"])
@@ -30,11 +31,36 @@ class UploadVideo(BaseModel):
         return url
 
 
+class VideoMetadata(BaseModel):
+    duration_seconds: float
+    width: int
+    height: int
+
+    @staticmethod
+    def from_core(v: CoreVideoMetadata) -> VideoMetadata:
+        return VideoMetadata(
+            duration_seconds=v.duration_sec,
+            width=v.width,
+            height=v.height,
+        )
+
+
 class Video(BaseModel):
     id: str
     original_url: str
     video_type: str
     created_at: datetime
+    metadata: VideoMetadata
+
+    @staticmethod
+    def from_core(v: CoreVideo, mt: CoreVideoMetadata) -> Video:
+        return Video(
+            id=v.id,
+            original_url=v.original_url,
+            video_type=v.video_type.value,
+            created_at=v.created_at,
+            metadata=VideoMetadata.from_core(mt),
+        )
 
 
 class Videos(BaseModel):
@@ -48,11 +74,12 @@ def upload_video(request: UploadVideo, service: VideoServiceDependable) -> Video
     except VideoDownloadError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
-    return Video(
-        id=video.id,
-        original_url=video.original_url,
-        video_type=video.video_type.value,
-        created_at=video.created_at,
+    return Video.from_core(
+        video,
+        service.extract_video_metadata(
+            video.id,
+            video.video_type,
+        ),
     )
 
 
@@ -60,11 +87,12 @@ def upload_video(request: UploadVideo, service: VideoServiceDependable) -> Video
 def videos(service: VideoServiceDependable) -> Videos:
     return Videos(
         videos=[
-            Video(
-                id=v.id,
-                original_url=v.original_url,
-                video_type=v.video_type.value,
-                created_at=v.created_at,
+            Video.from_core(
+                v,
+                service.extract_video_metadata(
+                    v.id,
+                    v.video_type,
+                ),
             )
             for v in service.get_videos()
         ]
@@ -78,9 +106,10 @@ def get_last_video(service: VideoServiceDependable) -> Video:
     except NoVideosError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
-    return Video(
-        id=video.id,
-        original_url=video.original_url,
-        video_type=video.video_type.value,
-        created_at=video.created_at,
+    return Video.from_core(
+        video,
+        service.extract_video_metadata(
+            video.id,
+            video.video_type,
+        ),
     )
