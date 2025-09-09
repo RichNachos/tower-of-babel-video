@@ -16,6 +16,7 @@ dependencies = [
     "sqlalchemy",
     "httpx",
     "moviepy",
+    "numpy",
 ]
 
 [dependency-groups]

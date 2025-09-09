@@ -9,7 +9,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import BinaryIO, Protocol
 
+import numpy as np
+import numpy.typing as npt
 from moviepy import VideoFileClip
+from PIL import Image
 from sqlalchemy import DateTime, Enum, String, desc, func, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
@@ -65,6 +68,7 @@ class VideoService:
         )
         self.session.add(video)
         self.session.flush()
+        self.generate_thumbnail(video)
         return self.get_video(video.id)
 
     def get_video(self, video_id: str) -> Video:
@@ -91,6 +95,15 @@ class VideoService:
 
         return video[-1]
 
+    def generate_thumbnail(self, video: Video) -> None:
+        video_file_path = self._get_video_path(
+            video_id=video.id, video_type=video.video_type
+        )
+        video_clip = VideoFileClip(str(video_file_path))
+        np_frame: npt.NDArray[np.uint8] = video_clip.get_frame(0)  # type: ignore
+        thumbnail = Image.fromarray(np_frame, "RGB")
+        thumbnail.save(f"data/thumbnails/{video.id}.png")
+
     def extract_video_metadata(
         self, video_id: str, video_type: VideoType = VideoType.MP4
     ) -> VideoMetadata:
@@ -105,8 +118,6 @@ class VideoService:
             height,
         )
 
-        # --- NEW METHOD: Extract Audio Segment ---
-
     def extract_audio_segment(
         self,
         video_id: str,
@@ -114,11 +125,7 @@ class VideoService:
         from_seconds: float,
         to_seconds: float,
     ) -> BinaryIO:
-        video_file_path = Path(f"data/videos/{video_id}.{video_type.value}")
-        if not video_file_path.is_file():
-            raise VideoNotFoundError(
-                f"Video file not found for ID '{video_id}' at {video_file_path}"
-            )
+        video_file_path = self._get_video_path(video_id=video_id, video_type=video_type)
 
         if from_seconds < 0 or to_seconds < from_seconds:
             raise ValueError("Invalid audio segment range provided.")
@@ -151,6 +158,14 @@ class VideoService:
         video_clip.close()
 
         return output_buffer
+
+    def _get_video_path(self, video_id: str, video_type: VideoType) -> Path:
+        video_file_path = Path(f"data/videos/{video_id}.{video_type.value}")
+        if not video_file_path.is_file():
+            raise VideoNotFoundError(
+                f"Video file not found for ID '{video_id}' at {video_file_path}"
+            )
+        return video_file_path
 
 
 class VideoDownloader(Protocol):
