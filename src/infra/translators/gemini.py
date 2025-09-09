@@ -8,7 +8,7 @@ from src.core.translations import Language, TranslatorError, TranslatorResponse
 
 
 @dataclass
-class GeminiTranslator:
+class GeminiClient:
     api_key: str
 
     model: str = field(default="gemini-2.5-flash")
