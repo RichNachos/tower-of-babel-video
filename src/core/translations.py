@@ -5,6 +5,7 @@ import uuid
 import wave
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import BinaryIO, Protocol
 
 from sqlalchemy import DateTime, Enum, Float, ForeignKey, String, func, select
@@ -95,15 +96,21 @@ class TranslationService:
 
     def generate_speech_for_translation(self, translation_id: str) -> Translation:
         translation = self.get_translation(translation_id)
+        wave_file = Path(f"data/speeches/{translation.id}.wav")
+
+        if wave_file.exists():
+            raise TTSError("Audio for that translation already exists.")
 
         data = self.tts.text_to_speech(translation)
 
         # Values from google docs
-        with wave.open(f"data/speeches/{translation.id}.wav", "wb") as wf:
+        with wave.open(str(wave_file), "wb") as wf:
             wf.setnchannels(1)
             wf.setsampwidth(2)
             wf.setframerate(24000)
             wf.writeframes(data)
+
+        return translation
 
     def translate_audio_segment(
         self,

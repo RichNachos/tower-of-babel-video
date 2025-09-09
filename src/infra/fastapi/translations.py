@@ -9,6 +9,7 @@ from src.core.translations import (
     Language,
     Translation,
     TranslationNotFoundError,
+    TTSError,
 )
 from src.infra.fastapi.dependables import (
     TranslationServiceDependable,
@@ -92,3 +93,19 @@ def get_translations_by_video(
     video_id: str, service: TranslationServiceDependable
 ) -> TranslationsModel:
     return TranslationsModel.from_core(service.get_translations_by_video(video_id))
+
+
+@translation_router.post(
+    "/translations/{translation_id}/tts", status_code=status.HTTP_200_OK
+)
+def generate_translation_tts(
+    translation_id: str, service: TranslationServiceDependable
+) -> TranslationModel:
+    try:
+        translation = service.generate_speech_for_translation(translation_id)
+    except TranslationNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except TTSError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    return TranslationModel.from_core(translation)
