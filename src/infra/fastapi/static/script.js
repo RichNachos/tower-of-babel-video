@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const speakTranslationButton = document.getElementById('speak-translation');
     const firstFrameImg = document.getElementById('first-frame'); // This is for the static thumbnail
     const downloadFrameButton = document.getElementById('download-frame'); // This is for downloading the thumbnail
-    const runOcrButton = document.getElementById('run-ocr-button'); // NEW: Run OCR button
+    const runOcrButton = document.getElementById('run-ocr-button');
     const ocrOutputDiv = document.getElementById('ocr-output');
 
     // Sidebar Elements
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
             widthSpan.textContent = 'N/A';
             heightSpan.textContent = 'N/A';
 
-            translationP.textContent = 'N/A';
+            translationP.innerHTML = 'N/A';
             firstFrameImg.src = ''; // Clear thumbnail source
             firstFrameImg.style.display = 'none'; // Hide thumbnail
             ocrOutputDiv.innerHTML = 'No text detected yet.'; // Clear OCR output
@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
             downloadAudioButton.disabled = true;
             translateAudioButton.disabled = true;
             downloadFrameButton.disabled = true;
-            runOcrButton.disabled = true; // NEW: Disable Run OCR button
+            runOcrButton.disabled = true;
             speakTranslationButton.disabled = true;
             audioSegmentVideoIdInput.value = '';
             fromSecondsInput.disabled = true;
@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadAudioButton.disabled = false;
         translateAudioButton.disabled = false;
         downloadFrameButton.disabled = false;
-        runOcrButton.disabled = false; // NEW: Enable Run OCR button
+        runOcrButton.disabled = false;
         speakTranslationButton.disabled = false;
         fromSecondsInput.disabled = false;
         toSecondsInput.disabled = false;
@@ -213,9 +213,8 @@ document.addEventListener('DOMContentLoaded', () => {
         firstFrameImg.style.display = 'block';
         console.log("Loading thumbnail from:", thumbnailFileUrl);
 
-        // --- NEW: Populate OCR output from video.thumbnail_ocr ---
+        // Populate OCR output from video.thumbnail_ocr
         ocrOutputDiv.innerHTML = video.thumbnail_ocr || 'No text detected yet.';
-        // --- END NEW OCR POPULATION ---
 
         // Update the video URL input and its floating label
         videoUrlInput.value = video.original_url;
@@ -377,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadAudioButton.disabled = true;
         translateAudioButton.disabled = true;
         downloadFrameButton.disabled = true;
-        runOcrButton.disabled = true; // NEW: Disable Run OCR button initially
+        runOcrButton.disabled = true;
         speakTranslationButton.disabled = true;
         fromSecondsInput.disabled = true;
         toSecondsInput.disabled = true;
@@ -447,19 +446,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-
-    // MOCK_API: Only keeping mock functions for features NOT covered by backend endpoints.
-    const MOCK_API = {
-        translateText: (text) => new Promise(resolve => setTimeout(() => {
-            console.log("MOCK: Translating text:", text);
-            resolve("Hola, este es un texto de ejemplo en español.");
-        }, 500)),
-        textToSpeech: (text) => new Promise(resolve => setTimeout(() => {
-            console.log("MOCK: Text to speech for:", text);
-            resolve(new Audio());
-        }, 500)),
-        // performOcr removed, now using backend directly or via runOcrButton
-    };
 
     // --- Function to stop current audio playback ---
     function stopCurrentAudio() {
@@ -595,18 +581,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const translationResult = await response.json();
                 console.log("Translation successful:", translationResult);
-                translationP.textContent = `Original: "${translationResult.original_text}"\nTranslated (${TO_LANGUAGE}): "${translationResult.translated_text}"`;
+
+                // --- MODIFIED PART: Use innerHTML and <br> for line break ---
+                translationP.innerHTML = `Original: "${translationResult.original_text}"<br>Translated (${TO_LANGUAGE}): "${translationResult.translated_text}"`;
+                // --- END MODIFIED PART ---
+                
                 await fetchTranslationsForVideo(currentLoadedVideo.id); // Refresh translations list
             } else {
                 const errorData = await response.json();
                 console.error("Error during translation:", errorData);
                 alert(`Translation failed: ${errorData.detail || response.statusText}`);
-                translationP.textContent = `Error: ${errorData.detail || 'Translation failed.'}`;
+                translationP.innerHTML = `Error: ${errorData.detail || 'Translation failed.'}`;
             }
         } catch (error) {
             console.error("Network error during translation:", error);
             alert('Network error during translation.');
-            translationP.textContent = 'Error: Network error during translation.';
+            translationP.innerHTML = 'Error: Network error during translation.';
         } finally {
             hideLoading();
             // Re-enable buttons
@@ -624,12 +614,17 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("No video loaded to speak translation from.");
             return;
         }
-        const textToSpeak = translationP.textContent.includes('Original:') ? translationP.textContent.split(`Translated (${TO_LANGUAGE}): "`)[1].slice(0, -1) : translationP.textContent;
+        // Updated to handle innerHTML with <br>
+        const textToSpeak = translationP.innerHTML.includes('Original:') ? translationP.innerHTML.split(`Translated (${TO_LANGUAGE}): "`)[1].replace(/"$/, '') : translationP.innerHTML;
         if (textToSpeak === 'N/A' || textToSpeak.includes('Error:') || textToSpeak.trim() === '') {
             alert("No valid translation available to speak.");
             return;
         }
-        const audio = await MOCK_API.textToSpeech(textToSpeak);
+        // MOCK_API call for Text-to-Speech
+        const audio = await new Promise(resolve => setTimeout(() => {
+            console.log("MOCK: Text to speech for:", textToSpeak);
+            resolve(new Audio());
+        }, 500));
         audio.play().catch(e => console.error("Error speaking mock translation:", e));
         console.log("Speaking mock translation.");
     });
@@ -643,7 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const thumbnailFileUrl = firstFrameImg.src; // This is now the static thumbnail URL
         if (thumbnailFileUrl && !thumbnailFileUrl.includes('dummy') && thumbnailFileUrl !== window.location.href + '#') {
             const a = document.createElement('a');
-            a.href = thumbnailFileUrl;
+a.href = thumbnailFileUrl;
             a.download = `thumbnail-${currentLoadedVideo.id}.png`;
             document.body.appendChild(a);
             a.click();
@@ -654,7 +649,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- NEW: Event listener for Run OCR button ---
+    // Event listener for Run OCR button
     runOcrButton.addEventListener('click', async () => {
         if (!currentLoadedVideo) {
             alert("No video loaded to perform OCR on.");
@@ -699,6 +694,5 @@ document.addEventListener('DOMContentLoaded', () => {
             runOcrButton.disabled = false;
         }
     });
-    // --- END NEW RUN OCR BUTTON ---
 
 });
