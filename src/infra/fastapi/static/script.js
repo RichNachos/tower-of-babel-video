@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fromSecondsInput = document.getElementById('from-seconds');
     const toSecondsInput = document.getElementById('to-seconds');
     const playAudioButton = document.getElementById('play-audio');
+    const stopAudioButton = document.getElementById('stop-audio'); // NEW
     const downloadAudioButton = document.getElementById('download-audio');
     const translateAudioButton = document.getElementById('translate-audio-button');
 
@@ -58,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const videosPerPage = 5; // Number of videos to show per page in the sidebar
     let currentLoadedVideo = null; // Store the currently loaded video object
     let allTranslationsForVideo = []; // Store translations for the current video
+    let currentAudioInstance = null; // NEW: Store the currently playing audio object
 
     // --- Constants for Translation ---
     const FROM_LANGUAGE = 'EN'; // As per API definition (Language enum is EN, ES etc.)
@@ -98,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Function to update the UI with video details ---
     async function loadVideoDetails(video) {
         currentLoadedVideo = video; // Set the globally loaded video
+        stopCurrentAudio(); // Stop any currently playing audio when a new video is loaded
 
         if (!video) {
             displayVideoPlayerMessage('No video loaded. Upload one!', false);
@@ -122,9 +125,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Disable all action buttons and audio inputs if no video is loaded
             playAudioButton.disabled = true;
+            stopAudioButton.disabled = true; // NEW
             downloadAudioButton.disabled = true;
             translateAudioButton.disabled = true;
-            downloadFrameButton.disabled = true; // Disable thumbnail download button
+            downloadFrameButton.disabled = true;
             speakTranslationButton.disabled = true;
             audioSegmentVideoIdInput.value = '';
             fromSecondsInput.disabled = true;
@@ -139,9 +143,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Enable all action buttons and audio inputs
         playAudioButton.disabled = false;
+        // stopAudioButton remains disabled unless audio is actually playing
         downloadAudioButton.disabled = false;
         translateAudioButton.disabled = false;
-        downloadFrameButton.disabled = false; // Enable thumbnail download button
+        downloadFrameButton.disabled = false;
         speakTranslationButton.disabled = false;
         fromSecondsInput.disabled = false;
         toSecondsInput.disabled = false;
@@ -199,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mdc.textField.MDCTextField.attachTo(toSecondsInput.closest('.mdc-text-field')).layout();
 
 
-        // --- NEW: Load Video Thumbnail (firstFrameImg is now the thumbnail) ---
+        // Load Video Thumbnail
         const thumbnailFileUrl = `/data/thumbnails/${video.id}.png`;
         firstFrameImg.src = thumbnailFileUrl;
         firstFrameImg.style.display = 'block';
@@ -207,14 +212,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // MOCK_API call for OCR (runs on the displayed thumbnail image)
         try {
-            // We use the thumbnail directly for OCR
             const ocrResult = await MOCK_API.performOcr(firstFrameImg.src); // Pass src or a Blob from it
             ocrOutputDiv.innerHTML = ocrResult.join('<br>') || 'No text detected.';
         } catch (error) {
             console.error("Error performing OCR:", error);
             ocrOutputDiv.innerHTML = 'Error or No text detected.';
         }
-        // --- END NEW THUMBNAIL/OCR ---
 
         // Update the video URL input and its floating label
         videoUrlInput.value = video.original_url;
@@ -372,9 +375,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function initUI() {
         // Disable action buttons and audio inputs initially
         playAudioButton.disabled = true;
+        stopAudioButton.disabled = true; // NEW: Initially disabled
         downloadAudioButton.disabled = true;
         translateAudioButton.disabled = true;
-        downloadFrameButton.disabled = true; // Disable thumbnail download button initially
+        downloadFrameButton.disabled = true;
         speakTranslationButton.disabled = true;
         fromSecondsInput.disabled = true;
         toSecondsInput.disabled = true;
@@ -455,10 +459,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("MOCK: Text to speech for:", text);
             resolve(new Audio());
         }, 500)),
-        // Removed getFirstFrame as we're now using static thumbnail
-        performOcr: (imageUrl) => new Promise(resolve => setTimeout(() => { // Updated to accept imageUrl
+        performOcr: (imageUrl) => new Promise(resolve => setTimeout(() => {
             console.log("MOCK: Performing OCR on image:", imageUrl);
-            // Simulate some OCR result based on image URL (optional, but shows it's dynamic)
             if (imageUrl.includes('dummy')) {
                 resolve(["No text detected in dummy image."]);
             } else if (imageUrl.includes('thumbnail')) {
@@ -468,6 +470,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, 500)),
     };
+
+    // --- NEW: Function to stop current audio playback ---
+    function stopCurrentAudio() {
+        if (currentAudioInstance) {
+            currentAudioInstance.pause();
+            currentAudioInstance.currentTime = 0; // Rewind to start
+            currentAudioInstance = null;
+            stopAudioButton.disabled = true;
+        }
+    }
+    // ----------------------------------------------------
 
 
     // Event listeners for Audio buttons
@@ -488,12 +501,38 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Stop any currently playing audio before starting a new one
+        stopCurrentAudio();
+
         const audioEndpointUrl = `/videos/${currentLoadedVideo.id}/audio-segment?from_seconds=${fromSeconds}&to_seconds=${toSeconds}`;
         console.log("Playing audio from backend:", audioEndpointUrl);
 
-        const audio = new Audio(audioEndpointUrl);
-        audio.play().catch(e => console.error("Error playing audio:", e));
+        currentAudioInstance = new Audio(audioEndpointUrl);
+        currentAudioInstance.play().then(() => {
+            stopAudioButton.disabled = false; // Enable stop button if playback starts
+        }).catch(e => {
+            console.error("Error playing audio:", e);
+            stopCurrentAudio(); // Ensure stop button is disabled on error
+        });
+        
+        // Disable stop button when audio finishes or errors out
+        currentAudioInstance.onended = () => {
+            console.log("Audio playback ended.");
+            stopCurrentAudio();
+        };
+        currentAudioInstance.onerror = (e) => {
+            console.error("Audio playback error:", e);
+            alert("Failed to play audio segment.");
+            stopCurrentAudio();
+        };
     });
+
+    // NEW: Event listener for Stop Audio button
+    stopAudioButton.addEventListener('click', () => {
+        console.log("Stopping audio playback.");
+        stopCurrentAudio();
+    });
+
 
     downloadAudioButton.addEventListener('click', () => {
         if (!currentLoadedVideo) {
@@ -545,6 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         // Disable all audio action buttons during translation
         playAudioButton.disabled = true;
+        stopAudioButton.disabled = true; // NEW
         downloadAudioButton.disabled = true;
         translateAudioButton.disabled = true;
 
@@ -581,6 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hideLoading();
             // Re-enable buttons
             playAudioButton.disabled = false;
+            // stopAudioButton should remain disabled unless audio starts playing again
             downloadAudioButton.disabled = false;
             translateAudioButton.disabled = false;
         }
@@ -599,18 +640,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const audio = await MOCK_API.textToSpeech(textToSpeak);
-        audio.play();
+        audio.play().catch(e => console.error("Error speaking mock translation:", e));
         console.log("Speaking mock translation.");
     });
 
-    // Event listener for Download Thumbnail button (formerly Download Frame)
+    // Event listener for Download Thumbnail button
     downloadFrameButton.addEventListener('click', async () => {
         if (!currentLoadedVideo) {
             alert("No video loaded to download thumbnail from.");
             return;
         }
         const thumbnailFileUrl = firstFrameImg.src; // This is now the static thumbnail URL
-        if (thumbnailFileUrl && !thumbnailFileUrl.includes('dummy')) { // Ensure it's a valid thumbnail, not just a placeholder
+        if (thumbnailFileUrl && !thumbnailFileUrl.includes('dummy') && thumbnailFileUrl !== window.location.href + '#') {
             const a = document.createElement('a');
             a.href = thumbnailFileUrl;
             a.download = `thumbnail-${currentLoadedVideo.id}.png`;
