@@ -8,8 +8,10 @@ from google.genai import Client, types
 from src.core.translations import (
     Language,
     OCRError,
+    Translation,
     TranslatorError,
     TranslatorResponse,
+    TTSError,
 )
 
 
@@ -18,6 +20,7 @@ class GeminiClient:
     api_key: str
 
     model: str = field(default="gemini-2.5-flash")
+    tts_model: str = field(default="gemini-2.5-flash-preview-tts")
     client: Client = field(init=False)
 
     def __post_init__(self) -> None:
@@ -84,6 +87,35 @@ class GeminiClient:
 
         return response.text
 
+    def text_to_speech(self, translation: Translation) -> bytes:
+        response = self.client.models.generate_content(
+            model=self.tts_model,
+            contents=TTS_PROMPT.format(
+                language=translation.to_language,
+                text=translation.translated_text,
+            ),
+            config=types.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name="Kore",
+                        )
+                    )
+                ),
+            ),
+        )
+        if (
+            not response.candidates
+            or not response.candidates[0].content
+            or not response.candidates[0].content.parts
+            or not response.candidates[0].content.parts[0].inline_data
+            or not response.candidates[0].content.parts[0].inline_data.data
+        ):
+            raise TTSError("Can't generate speech audio currently.")
+
+        return response.candidates[0].content.parts[0].inline_data.data
+
 
 class FakeGeminiClient:
     def translate(
@@ -99,6 +131,9 @@ class FakeGeminiClient:
 
     def generate_ocr(self, image: Path) -> str:  # noqa: ARG002
         return "ocr text"
+
+    def text_to_speech(self, translation: Translation) -> bytes:  # noqa: ARG002
+        return b""
 
 
 TRANSLATE_PROMPT = """
@@ -123,4 +158,10 @@ DO NOT use any formatting, just pure plain json format.
 IMAGE_OCR_PROMPT = """
 OCR this image and list all the detected words/phrases.
 Do not write anything else.
+"""
+
+TTS_PROMPT = """
+Say the following text moderately cheerfully in the {language} language:
+
+{text}
 """

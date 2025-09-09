@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import enum
 import uuid
+import wave
 from dataclasses import dataclass
 from datetime import datetime
 from typing import BinaryIO, Protocol
@@ -68,6 +69,7 @@ class TranslationService:
     session: Session
     video_service: VideoService
     translator: Translator
+    tts: TTSGenerator
 
     def get_translations(self) -> list[Translation]:
         return list(self.session.scalars(select(Translation)).all())
@@ -90,6 +92,18 @@ class TranslationService:
                 select(Translation).where(Translation.video_id == video_id)
             ).all()
         )
+
+    def generate_speech_for_translation(self, translation_id: str) -> Translation:
+        translation = self.get_translation(translation_id)
+
+        data = self.tts.text_to_speech(translation)
+
+        # Values from google docs
+        with wave.open(f"data/speeches/{translation.id}.wav", "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(24000)
+            wf.writeframes(data)
 
     def translate_audio_segment(
         self,
@@ -147,9 +161,17 @@ class Translator(Protocol):
     ) -> TranslatorResponse: ...
 
 
+class TTSGenerator(Protocol):
+    def text_to_speech(self, translation: Translation) -> bytes: ...
+
+
 class TranslatorError(Exception):
     pass
 
 
 class OCRError(Exception):
+    pass
+
+
+class TTSError(Exception):
     pass
