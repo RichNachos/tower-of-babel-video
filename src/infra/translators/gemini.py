@@ -67,15 +67,16 @@ class GeminiClient:
         with open(image, "rb") as f:
             image_bytes = f.read()
 
+        prompt = types.Part.from_text(text=IMAGE_OCR_PROMPT)
+        image_part = types.Part.from_bytes(
+            data=image_bytes,
+            mime_type="image/png",
+        )
+
+        contents = types.Content(parts=[prompt, image_part])
         response = self.client.models.generate_content(
             model=self.model,
-            contents=[
-                types.Part.from_bytes(
-                    data=image_bytes,
-                    mime_type="image/png",
-                ),
-                IMAGE_OCR_PROMPT,
-            ],
+            contents=contents,
         )
 
         if not response.text:
