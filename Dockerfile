@@ -8,5 +8,6 @@ COPY pyproject.toml .
 RUN uv pip install --system --no-cache -r pyproject.toml
 
 COPY src ./src
+COPY data ./data
 
 CMD ["python", "-m", "src" "run"]
