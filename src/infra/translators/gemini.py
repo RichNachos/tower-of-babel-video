@@ -5,7 +5,12 @@ from typing import BinaryIO
 
 from google.genai import Client, types
 
-from src.core.translations import Language, TranslatorError, TranslatorResponse
+from src.core.translations import (
+    Language,
+    OCRError,
+    TranslatorError,
+    TranslatorResponse,
+)
 
 
 @dataclass
@@ -58,8 +63,25 @@ class GeminiClient:
             translated_text=formatted["translated"],
         )
 
-    def generate_ocr(self, image: Path) -> str:  # noqa: ARG002
-        return "ocr text"
+    def generate_ocr(self, image: Path) -> str:
+        with open(image, "rb") as f:
+            image_bytes = f.read()
+
+        response = self.client.models.generate_content(
+            model=self.model,
+            contents=[
+                types.Part.from_bytes(
+                    data=image_bytes,
+                    mime_type="image/png",
+                ),
+                IMAGE_OCR_PROMPT,
+            ],
+        )
+
+        if not response.text:
+            raise OCRError("Can't OCR the image currently.")
+
+        return response.text
 
 
 class FakeGeminiClient:
@@ -95,4 +117,9 @@ in a json format like this:
 DO NOT output any other thing other than this json.
 DO NOT use any formatting, just pure plain json format.
 
+"""
+
+IMAGE_OCR_PROMPT = """
+OCR this image and list all the detected words/phrases.
+Do not write anything else.
 """

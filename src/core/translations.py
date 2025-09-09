@@ -149,3 +149,7 @@ class Translator(Protocol):
 
 class TranslatorError(Exception):
     pass
+
+
+class OCRError(Exception):
+    pass
