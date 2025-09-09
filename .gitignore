@@ -13,3 +13,4 @@ wheels/
 *.sqlite
 /data/videos/*.mp4
 /data/thumbnails/*.png
+/data/speeches/*.wav

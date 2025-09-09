@@ -33,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Other Cards
     const translationP = document.getElementById('translation');
-    const speakTranslationButton = document.getElementById('speak-translation');
     const firstFrameImg = document.getElementById('first-frame'); // This is for the static thumbnail
     const downloadFrameButton = document.getElementById('download-frame'); // This is for downloading the thumbnail
     const runOcrButton = document.getElementById('run-ocr-button');
@@ -53,6 +52,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalTranslatedText = document.getElementById('modal-translated-text');
     const modalSegmentTime = document.getElementById('modal-segment-time');
 
+    // Main Translation Card TTS Buttons
+    const mainGenerateTtsButton = document.getElementById('main-generate-tts-button');
+    const mainPlayTtsButton = document.getElementById('main-play-tts-button');
+    const mainStopTtsButton = document.getElementById('main-stop-tts-button');
+
+    // Modal TTS Buttons
+    const modalGenerateTtsButton = document.getElementById('modal-generate-tts-button');
+    const modalPlayTtsButton = document.getElementById('modal-play-tts-button');
+    const modalStopTtsButton = document.getElementById('modal-stop-tts-button');
+
 
     // Global State
     let allVideos = [];
@@ -61,6 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentLoadedVideo = null; // Store the currently loaded video object
     let allTranslationsForVideo = []; // Store translations for the current video
     let currentAudioInstance = null; // Store the currently playing audio object
+    let currentSelectedTranslation = null; // Store the currently selected/active translation object
+    let currentTtsAudioInstance = null; // Store the currently playing TTS audio object
 
     // --- Constants for Translation ---
     const FROM_LANGUAGE = 'English'; // As per API definition (Language enum is English, Spanish etc.)
@@ -102,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadVideoDetails(video) {
         currentLoadedVideo = video; // Set the globally loaded video
         stopCurrentAudio(); // Stop any currently playing audio when a new video is loaded
+        stopTts(); // Stop any TTS audio
 
         if (!video) {
             displayVideoPlayerMessage('No video loaded. Upload one!', false);
@@ -115,7 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
             widthSpan.textContent = 'N/A';
             heightSpan.textContent = 'N/A';
 
-            translationP.innerHTML = 'N/A';
             firstFrameImg.src = ''; // Clear thumbnail source
             firstFrameImg.style.display = 'none'; // Hide thumbnail
             ocrOutputDiv.innerHTML = 'No text detected yet.'; // Clear OCR output
@@ -131,14 +142,16 @@ document.addEventListener('DOMContentLoaded', () => {
             translateAudioButton.disabled = true;
             downloadFrameButton.disabled = true;
             runOcrButton.disabled = true;
-            speakTranslationButton.disabled = true;
             audioSegmentVideoIdInput.value = '';
             fromSecondsInput.disabled = true;
             toSecondsInput.disabled = true;
 
-            // Clear translations list
+            // Clear translations list and selected translation
             allTranslationsForVideo = [];
             renderTranslationsList();
+            currentSelectedTranslation = null;
+            await updateTtsControlsForTranslation(null);
+
 
             return;
         }
@@ -150,7 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
         translateAudioButton.disabled = false;
         downloadFrameButton.disabled = false;
         runOcrButton.disabled = false;
-        speakTranslationButton.disabled = false;
         fromSecondsInput.disabled = false;
         toSecondsInput.disabled = false;
 
@@ -286,10 +298,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Functions for Translation Modal ---
-    function openTranslationModal(translation) {
+    async function openTranslationModal(translation) {
         modalOriginalText.textContent = translation.original_text;
         modalTranslatedText.textContent = translation.translated_text;
         modalSegmentTime.textContent = `${translation.from_seconds.toFixed(1)}s to ${translation.to_seconds.toFixed(1)}s`;
+        
+        currentSelectedTranslation = translation;
+        await updateTtsControlsForTranslation(translation);
+
+        const ttsExists = await checkTtsExists(translation.id);
+        if (ttsExists) {
+            modalGenerateTtsButton.style.display = 'none';
+            modalPlayTtsButton.style.display = 'inline-flex';
+            modalStopTtsButton.style.display = 'inline-flex';
+            modalStopTtsButton.disabled = true;
+        } else {
+            modalGenerateTtsButton.style.display = 'inline-flex';
+            modalPlayTtsButton.style.display = 'none';
+            modalStopTtsButton.style.display = 'none';
+        }
+
         translationModal.open();
     }
 
@@ -327,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/videos/${videoId}/translations`);
             if (response.ok) {
                 const data = await response.json();
-                allTranslationsForVideo = data.translations;
+                allTranslationsForVideo = data.translations.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
                 renderTranslationsList();
             } else {
                 const errorData = await response.json();
@@ -368,6 +396,128 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- TTS (Text-to-Speech) Functions ---
+
+    async function checkTtsExists(translationId) {
+        try {
+            const response = await fetch(`/data/speeches/${translationId}.wav`, { method: 'HEAD' });
+            return response.ok;
+        } catch (error) {
+            console.error("Error checking TTS file:", error);
+            return false;
+        }
+    }
+
+    function stopTts() {
+        if (currentTtsAudioInstance) {
+            currentTtsAudioInstance.pause();
+            currentTtsAudioInstance.currentTime = 0;
+            currentTtsAudioInstance = null;
+            
+            mainPlayTtsButton.querySelector('.material-icons').textContent = 'play_arrow';
+            mainStopTtsButton.disabled = true;
+            
+            modalPlayTtsButton.querySelector('.material-icons').textContent = 'play_arrow';
+            modalStopTtsButton.disabled = true;
+        }
+    }
+
+    function playTts(translationId) {
+        if (currentTtsAudioInstance && !currentTtsAudioInstance.paused) {
+            currentTtsAudioInstance.pause();
+            mainPlayTtsButton.querySelector('.material-icons').textContent = 'play_arrow';
+            modalPlayTtsButton.querySelector('.material-icons').textContent = 'play_arrow';
+            return;
+        }
+
+        if (currentTtsAudioInstance && currentTtsAudioInstance.paused) {
+            currentTtsAudioInstance.play();
+            mainPlayTtsButton.querySelector('.material-icons').textContent = 'pause';
+            modalPlayTtsButton.querySelector('.material-icons').textContent = 'pause';
+            return;
+        }
+
+        stopTts();
+        const ttsUrl = `/data/speeches/${translationId}.wav`;
+        currentTtsAudioInstance = new Audio(ttsUrl);
+
+        mainPlayTtsButton.querySelector('.material-icons').textContent = 'pause';
+        mainStopTtsButton.disabled = false;
+        modalPlayTtsButton.querySelector('.material-icons').textContent = 'pause';
+        modalStopTtsButton.disabled = false;
+
+        currentTtsAudioInstance.play().catch(e => {
+            console.error("Error playing TTS:", e);
+            alert("Could not play TTS audio.");
+            stopTts();
+        });
+
+        currentTtsAudioInstance.onended = stopTts;
+        currentTtsAudioInstance.onerror = () => {
+            alert("Failed to play TTS audio file.");
+            stopTts();
+        };
+    }
+
+    async function generateTts(translationId) {
+        if (!translationId) return;
+        showLoading();
+        try {
+            const response = await fetch(`/translations/${translationId}/tts`, { method: 'POST' });
+            if (response.ok) {
+                const translation = allTranslationsForVideo.find(t => t.id === translationId);
+                if (translation) {
+                    await updateTtsControlsForTranslation(translation);
+                    // Also update modal buttons if it's open
+                    modalGenerateTtsButton.style.display = 'none';
+                    modalPlayTtsButton.style.display = 'inline-flex';
+                    modalStopTtsButton.style.display = 'inline-flex';
+                    modalStopTtsButton.disabled = true;
+                }
+            } else {
+                const errorData = await response.json();
+                alert(`Failed to generate speech: ${errorData.detail}`);
+            }
+        } catch (error) {
+            console.error("Network error generating TTS:", error);
+            alert("Network error generating TTS.");
+        } finally {
+            hideLoading();
+        }
+    }
+
+    async function updateTtsControlsForTranslation(translation) {
+        if (!translation) {
+            translationP.innerHTML = 'N/A';
+            mainGenerateTtsButton.disabled = true;
+            mainPlayTtsButton.disabled = true;
+            mainStopTtsButton.disabled = true;
+            mainPlayTtsButton.style.display = 'none';
+            mainStopTtsButton.style.display = 'none';
+            mainGenerateTtsButton.style.display = 'inline-flex';
+            return;
+        }
+
+        translationP.innerHTML = `Original: "${translation.original_text}"<br>Translated (${translation.to_language}): "${translation.translated_text}"`;
+        const ttsExists = await checkTtsExists(translation.id);
+
+        if (ttsExists) {
+            mainGenerateTtsButton.style.display = 'none';
+            mainPlayTtsButton.style.display = 'inline-flex';
+            mainStopTtsButton.style.display = 'inline-flex';
+            mainGenerateTtsButton.disabled = true;
+            mainPlayTtsButton.disabled = false;
+            mainStopTtsButton.disabled = true;
+        } else {
+            mainGenerateTtsButton.style.display = 'inline-flex';
+            mainPlayTtsButton.style.display = 'none';
+            mainStopTtsButton.style.display = 'none';
+            mainGenerateTtsButton.disabled = false;
+            mainPlayTtsButton.disabled = true;
+            mainStopTtsButton.disabled = true;
+        }
+    }
+
     // --- Initial Load and Event Listeners ---
     async function initUI() {
         // Disable action buttons and audio inputs initially
@@ -377,9 +527,9 @@ document.addEventListener('DOMContentLoaded', () => {
         translateAudioButton.disabled = true;
         downloadFrameButton.disabled = true;
         runOcrButton.disabled = true;
-        speakTranslationButton.disabled = true;
         fromSecondsInput.disabled = true;
         toSecondsInput.disabled = true;
+        await updateTtsControlsForTranslation(null);
 
         await loadLastVideo(); // Load last video first
         await fetchAllVideos(); // Then load all videos for the sidebar
@@ -581,12 +731,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const translationResult = await response.json();
                 console.log("Translation successful:", translationResult);
-
-                // --- MODIFIED PART: Use innerHTML and <br> for line break ---
-                translationP.innerHTML = `Original: "${translationResult.original_text}"<br>Translated (${TO_LANGUAGE}): "${translationResult.translated_text}"`;
-                // --- END MODIFIED PART ---
                 
                 await fetchTranslationsForVideo(currentLoadedVideo.id); // Refresh translations list
+                
+                if (allTranslationsForVideo.length > 0) {
+                    const newTranslation = allTranslationsForVideo[0];
+                    currentSelectedTranslation = newTranslation;
+                    await updateTtsControlsForTranslation(newTranslation);
+                }
+
             } else {
                 const errorData = await response.json();
                 console.error("Error during translation:", errorData);
@@ -607,27 +760,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-
-    // Event listener for Speak Translation button
-    speakTranslationButton.addEventListener('click', async () => {
-        if (!currentLoadedVideo) {
-            alert("No video loaded to speak translation from.");
-            return;
-        }
-        // Updated to handle innerHTML with <br>
-        const textToSpeak = translationP.innerHTML.includes('Original:') ? translationP.innerHTML.split(`Translated (${TO_LANGUAGE}): "`)[1].replace(/"$/, '') : translationP.innerHTML;
-        if (textToSpeak === 'N/A' || textToSpeak.includes('Error:') || textToSpeak.trim() === '') {
-            alert("No valid translation available to speak.");
-            return;
-        }
-        // MOCK_API call for Text-to-Speech
-        const audio = await new Promise(resolve => setTimeout(() => {
-            console.log("MOCK: Text to speech for:", textToSpeak);
-            resolve(new Audio());
-        }, 500));
-        audio.play().catch(e => console.error("Error speaking mock translation:", e));
-        console.log("Speaking mock translation.");
+    // --- Event Listeners for TTS Buttons ---
+    mainGenerateTtsButton.addEventListener('click', () => {
+        if (currentSelectedTranslation) generateTts(currentSelectedTranslation.id);
     });
+    mainPlayTtsButton.addEventListener('click', () => {
+        if (currentSelectedTranslation) playTts(currentSelectedTranslation.id);
+    });
+    mainStopTtsButton.addEventListener('click', stopTts);
+
+    modalGenerateTtsButton.addEventListener('click', () => {
+        if (currentSelectedTranslation) generateTts(currentSelectedTranslation.id);
+    });
+    modalPlayTtsButton.addEventListener('click', () => {
+        if (currentSelectedTranslation) playTts(currentSelectedTranslation.id);
+    });
+    modalStopTtsButton.addEventListener('click', stopTts);
+
 
     // Event listener for Download Thumbnail button
     downloadFrameButton.addEventListener('click', async () => {

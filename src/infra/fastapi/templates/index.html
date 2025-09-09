@@ -116,11 +116,20 @@
           </div>
 
           <!-- Translations List Card -->
-          <div class="mdc-card" style="flex-grow: 1; display: flex; flex-direction: column; margin-top: 20px;">
-            <div class="mdc-card__primary-action" style="flex-grow: 1;">
+          <div
+            class="mdc-card"
+            style="
+              flex-grow: 1;
+              display: flex;
+              flex-direction: column;
+              margin-top: 20px;
+            "
+          >
+            <div class="mdc-card__primary-action" style="flex-grow: 1">
               <h2 class="mdc-typography--headline6">Video Translations</h2>
-              <div style="max-height: 250px; overflow-y: auto;">
-                <table class="video-list-table"> <!-- Re-using class for similar styling -->
+              <div style="max-height: 250px; overflow-y: auto">
+                <table class="video-list-table">
+                  <!-- Re-using class for similar styling -->
                   <thead>
                     <tr>
                       <th>ID</th>
@@ -129,7 +138,11 @@
                     </tr>
                   </thead>
                   <tbody id="translation-list-tbody">
-                    <tr><td colspan="3" style="text-align: center;">No translations for this video.</td></tr>
+                    <tr>
+                      <td colspan="3" style="text-align: center">
+                        No translations for this video.
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -409,13 +422,15 @@
                   >
                   <span class="mdc-button__label">Download Audio Segment</span>
                 </button>
-                 <button
+                <button
                   class="mdc-button mdc-button--raised mdc-button--leading-icon"
                   id="translate-audio-button"
                   disabled
                 >
                   <span class="mdc-button__ripple"></span>
-                  <i class="material-icons mdc-button__icon" aria-hidden="true">translate</i>
+                  <i class="material-icons mdc-button__icon" aria-hidden="true"
+                    >translate</i
+                  >
                   <span class="mdc-button__label">Translate Segment</span>
                 </button>
               </div>
@@ -434,16 +449,36 @@
               <div class="mdc-card__action-buttons">
                 <button
                   class="mdc-button mdc-button--raised mdc-button--leading-icon"
-                  id="speak-translation"
+                  id="main-generate-tts-button"
                   disabled
                 >
                   <span class="mdc-button__ripple"></span>
-                  <i
-                    class="material-icons mdc-button__icon"
-                    aria-hidden="true"
-                    >record_voice_over</i
+                  <i class="material-icons mdc-button__icon" aria-hidden="true"
+                    >volume_up</i
                   >
-                  <span class="mdc-button__label">Speak Translation</span>
+                  <span class="mdc-button__label">Generate Speech</span>
+                </button>
+                <button
+                  class="mdc-button mdc-button--outlined mdc-button--leading-icon"
+                  id="main-play-tts-button"
+                  style="display: none"
+                >
+                  <span class="mdc-button__ripple"></span>
+                  <i class="material-icons mdc-button__icon" aria-hidden="true"
+                    >play_arrow</i
+                  >
+                  <span class="mdc-button__label">Play</span>
+                </button>
+                <button
+                  class="mdc-button mdc-button--outlined mdc-button--leading-icon"
+                  id="main-stop-tts-button"
+                  style="display: none"
+                >
+                  <span class="mdc-button__ripple"></span>
+                  <i class="material-icons mdc-button__icon" aria-hidden="true"
+                    >stop</i
+                  >
+                  <span class="mdc-button__label">Stop</span>
                 </button>
               </div>
             </div>
@@ -512,19 +547,77 @@
     <script src="/static/script.js"></script>
 
     <!-- Translation Modal (Hidden by default) -->
-    <div id="translation-modal" class="mdc-dialog" role="alertdialog" aria-modal="true" aria-labelledby="translation-dialog-title" aria-describedby="translation-dialog-content">
+    <div
+      id="translation-modal"
+      class="mdc-dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="translation-dialog-title"
+      aria-describedby="translation-dialog-content"
+    >
       <div class="mdc-dialog__container">
         <div class="mdc-dialog__surface">
-          <h2 class="mdc-dialog__title" id="translation-dialog-title">Translation Details</h2>
+          <h2 class="mdc-dialog__title" id="translation-dialog-title">
+            Translation Details
+          </h2>
           <div class="mdc-dialog__content" id="translation-dialog-content">
             <p><strong>Original Text:</strong></p>
             <p id="modal-original-text" class="mdc-typography--body1"></p>
             <p><strong>Translated Text (Spanish):</strong></p>
             <p id="modal-translated-text" class="mdc-typography--body1"></p>
-            <p class="mdc-typography--body2"><em>Segment: <span id="modal-segment-time"></span></em></p>
+            <p class="mdc-typography--body2">
+              <em>Segment: <span id="modal-segment-time"></span></em>
+            </p>
+
+            <div
+              class="mdc-card__actions"
+              style="
+                padding: 8px 0;
+                justify-content: flex-start;
+                border-top: 1px solid rgba(0, 0, 0, 0.12);
+                margin-top: 16px;
+              "
+            >
+              <button
+                class="mdc-button mdc-button--raised mdc-button--leading-icon"
+                id="modal-generate-tts-button"
+              >
+                <span class="mdc-button__ripple"></span>
+                <i class="material-icons mdc-button__icon" aria-hidden="true"
+                  >volume_up</i
+                >
+                <span class="mdc-button__label">Generate Speech</span>
+              </button>
+              <button
+                class="mdc-button mdc-button--outlined mdc-button--leading-icon"
+                id="modal-play-tts-button"
+                style="display: none"
+              >
+                <span class="mdc-button__ripple"></span>
+                <i class="material-icons mdc-button__icon" aria-hidden="true"
+                  >play_arrow</i
+                >
+                <span class="mdc-button__label">Play</span>
+              </button>
+              <button
+                class="mdc-button mdc-button--outlined mdc-button--leading-icon"
+                id="modal-stop-tts-button"
+                style="display: none"
+              >
+                <span class="mdc-button__ripple"></span>
+                <i class="material-icons mdc-button__icon" aria-hidden="true"
+                  >stop</i
+                >
+                <span class="mdc-button__label">Stop</span>
+              </button>
+            </div>
           </div>
           <div class="mdc-dialog__actions">
-            <button type="button" class="mdc-button mdc-dialog__button" data-mdc-dialog-action="close">
+            <button
+              type="button"
+              class="mdc-button mdc-dialog__button"
+              data-mdc-dialog-action="close"
+            >
               <span class="mdc-button__label">Close</span>
             </button>
           </div>
