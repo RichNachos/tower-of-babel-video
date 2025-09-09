@@ -27,6 +27,7 @@ class Video(Base):
     __tablename__ = "videos"
 
     original_url: Mapped[str] = mapped_column(String, nullable=False)
+    thumbnail_ocr: Mapped[str] = mapped_column(String, nullable=True, default=None)
 
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default_factory=lambda: str(uuid.uuid4())
@@ -55,6 +56,7 @@ class VideoMetadata:
 class VideoService:
     session: Session
     video_downloader: VideoDownloader
+    ocr: OCRGenerator
 
     def get_videos(self) -> list[Video]:
         return list(self.session.scalars(select(Video)).all())
@@ -100,14 +102,20 @@ class VideoService:
             video_id=video.id, video_type=video.video_type
         )
         video_clip = VideoFileClip(str(video_file_path))
-        np_frame: npt.NDArray[np.uint8] = video_clip.get_frame(0)  # type: ignore
+        np_frame: npt.NDArray[np.uint8] = video_clip.get_frame(0)  # pyright: ignore[reportAssignmentType]
         thumbnail = Image.fromarray(np_frame, "RGB")
         thumbnail.save(f"data/thumbnails/{video.id}.png")
+
+    def generate_thumbnail_ocr(self, video_id: str) -> None:
+        video = self.get_video(video_id)
+        thumbnail = Path(f"data/thumbnails/{video_id}.png")
+        ocr_text = self.ocr.generate_ocr(thumbnail)
+        video.thumbnail_ocr = ocr_text
 
     def extract_video_metadata(
         self, video_id: str, video_type: VideoType = VideoType.MP4
     ) -> VideoMetadata:
-        clip = VideoFileClip(f"data/videos/{video_id}.{video_type.value}")
+        clip = VideoFileClip(self._get_video_path(video_id, video_type))
         duration_seconds = clip.duration
         width = clip.w
         height = clip.h
@@ -166,6 +174,10 @@ class VideoService:
                 f"Video file not found for ID '{video_id}' at {video_file_path}"
             )
         return video_file_path
+
+
+class OCRGenerator(Protocol):
+    def generate_ocr(self, image: Path) -> str: ...
 
 
 class VideoDownloader(Protocol):

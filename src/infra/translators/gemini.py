@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import BinaryIO
 
 from google.genai import Client, types
@@ -57,8 +58,11 @@ class GeminiClient:
             translated_text=formatted["translated"],
         )
 
+    def generate_ocr(self, image: Path) -> str:  # noqa: ARG002
+        return "ocr text"
 
-class FakeGeminiTranslator:
+
+class FakeGeminiClient:
     def translate(
         self,
         audio: BinaryIO,  # noqa: ARG002
@@ -69,6 +73,9 @@ class FakeGeminiTranslator:
             original_text="original",
             translated_text="translated",
         )
+
+    def generate_ocr(self, image: Path) -> str:  # noqa: ARG002
+        return "ocr text"
 
 
 TRANSLATE_PROMPT = """

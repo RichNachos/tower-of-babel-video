@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from src.core.base import Connector
 from src.core.translations import TranslationService, Translator
 from src.core.videos import (
+    OCRGenerator,
     VideoDownloader,
     VideoService,
 )
@@ -29,13 +30,17 @@ def get_session(connector: ConnectorDependable) -> Generator[Session]:
 
 SessionDependable = Annotated[Session, Depends(get_session)]
 VideoDownloaderDependable = Annotated[VideoDownloader, inject("video_downloader")]
+OCRGeneratorDependable = Annotated[OCRGenerator, inject("ocr_generator")]
 
 
 def get_video_service(
     session: SessionDependable,
     video_downloader: VideoDownloaderDependable,
+    ocr_generator: OCRGeneratorDependable,
 ) -> VideoService:
-    return VideoService(session=session, video_downloader=video_downloader)
+    return VideoService(
+        session=session, video_downloader=video_downloader, ocr=ocr_generator
+    )
 
 
 VideoServiceDependable = Annotated[VideoService, Depends(get_video_service)]
