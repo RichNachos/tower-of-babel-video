@@ -5,7 +5,7 @@ from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
 from src.core.base import Connector
-from src.core.translations import TranslationService, Translator
+from src.core.translations import TranslationService, Translator, TTSGenerator
 from src.core.videos import (
     OCRGenerator,
     VideoDownloader,
@@ -31,6 +31,7 @@ def get_session(connector: ConnectorDependable) -> Generator[Session]:
 SessionDependable = Annotated[Session, Depends(get_session)]
 VideoDownloaderDependable = Annotated[VideoDownloader, inject("video_downloader")]
 OCRGeneratorDependable = Annotated[OCRGenerator, inject("ocr_generator")]
+TTSGeneratorDependable = Annotated[TTSGenerator, inject("tts_generator")]
 
 
 def get_video_service(
@@ -51,9 +52,13 @@ def get_translation_service(
     session: SessionDependable,
     video_service: VideoServiceDependable,
     translator: TranslatorDependable,
+    tts_generator: TTSGeneratorDependable,
 ) -> TranslationService:
     return TranslationService(
-        session=session, video_service=video_service, translator=translator
+        session=session,
+        video_service=video_service,
+        translator=translator,
+        tts=tts_generator,
     )
 
 

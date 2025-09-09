@@ -38,9 +38,11 @@ def get_app() -> FastAPI:
 
     app.state.translator = FakeGeminiClient()
     app.state.ocr_generator = FakeGeminiClient()
+    app.state.tts_generator = FakeGeminiClient()
     if "GEMINI_API_KEY" in os.environ:
         app.state.translator = GeminiClient(os.environ["GEMINI_API_KEY"])
         app.state.ocr_generator = GeminiClient(os.environ["GEMINI_API_KEY"])
+        app.state.tts_generator = GeminiClient(os.environ["GEMINI_API_KEY"])
 
     app.mount(
         "/static",

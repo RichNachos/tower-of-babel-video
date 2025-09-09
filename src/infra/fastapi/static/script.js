@@ -63,8 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentAudioInstance = null; // Store the currently playing audio object
 
     // --- Constants for Translation ---
-    const FROM_LANGUAGE = 'EN'; // As per API definition (Language enum is EN, ES etc.)
-    const TO_LANGUAGE = 'ES';
+    const FROM_LANGUAGE = 'English'; // As per API definition (Language enum is English, Spanish etc.)
+    const TO_LANGUAGE = 'Spanish';
     // -------------------------------------------------
 
 
