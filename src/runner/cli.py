@@ -19,7 +19,7 @@ cli = Typer()
 @cli.command(name="run")
 def run(
     host: str = "0.0.0.0",
-    port: int = 8000,
+    port: int = 8001,
     root_path: str = "",
 ) -> None:  # pragma: no cover
     load_dotenv()

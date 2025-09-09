@@ -23,18 +23,20 @@ class GeminiTranslator:
         from_language: Language,
         to_language: Language,
     ) -> TranslatorResponse:
+        prompt = types.Part.from_text(
+            text=TRANSLATE_PROMPT.format(
+                from_language=from_language.value,
+                to_language=to_language.value,
+            )
+        )
+        audio_part = types.Part.from_bytes(
+            data=audio.read(),
+            mime_type="audio/wav",
+        )
+        contents = types.Content(parts=[prompt, audio_part])
         response = self.client.models.generate_content(
             model=self.model,
-            contents=[
-                TRANSLATE_PROMPT.format(
-                    from_language=from_language.value,
-                    to_language=to_language.value,
-                ),
-                types.Part.from_bytes(
-                    data=audio.read(),
-                    mime_type="audio/wav",
-                ),
-            ],
+            contents=contents,
         )
 
         if not response.text:
