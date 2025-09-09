@@ -27,15 +27,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const fromSecondsInput = document.getElementById('from-seconds');
     const toSecondsInput = document.getElementById('to-seconds');
     const playAudioButton = document.getElementById('play-audio');
-    const stopAudioButton = document.getElementById('stop-audio'); // NEW
+    const stopAudioButton = document.getElementById('stop-audio');
     const downloadAudioButton = document.getElementById('download-audio');
     const translateAudioButton = document.getElementById('translate-audio-button');
 
     // Other Cards
     const translationP = document.getElementById('translation');
     const speakTranslationButton = document.getElementById('speak-translation');
-    const firstFrameImg = document.getElementById('first-frame'); // This is now for the static thumbnail
-    const downloadFrameButton = document.getElementById('download-frame'); // This is now for downloading the thumbnail
+    const firstFrameImg = document.getElementById('first-frame'); // This is for the static thumbnail
+    const downloadFrameButton = document.getElementById('download-frame'); // This is for downloading the thumbnail
+    const runOcrButton = document.getElementById('run-ocr-button'); // NEW: Run OCR button
     const ocrOutputDiv = document.getElementById('ocr-output');
 
     // Sidebar Elements
@@ -59,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const videosPerPage = 5; // Number of videos to show per page in the sidebar
     let currentLoadedVideo = null; // Store the currently loaded video object
     let allTranslationsForVideo = []; // Store translations for the current video
-    let currentAudioInstance = null; // NEW: Store the currently playing audio object
+    let currentAudioInstance = null; // Store the currently playing audio object
 
     // --- Constants for Translation ---
     const FROM_LANGUAGE = 'EN'; // As per API definition (Language enum is EN, ES etc.)
@@ -117,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
             translationP.textContent = 'N/A';
             firstFrameImg.src = ''; // Clear thumbnail source
             firstFrameImg.style.display = 'none'; // Hide thumbnail
-            ocrOutputDiv.innerHTML = 'No text detected yet.';
+            ocrOutputDiv.innerHTML = 'No text detected yet.'; // Clear OCR output
             videoUrlInput.value = '';
             const videoUrlTextField = mdc.textField.MDCTextField.attachTo(videoUrlInput.closest('.mdc-text-field'));
             videoUrlTextField.value = '';
@@ -125,10 +126,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Disable all action buttons and audio inputs if no video is loaded
             playAudioButton.disabled = true;
-            stopAudioButton.disabled = true; // NEW
+            stopAudioButton.disabled = true;
             downloadAudioButton.disabled = true;
             translateAudioButton.disabled = true;
             downloadFrameButton.disabled = true;
+            runOcrButton.disabled = true; // NEW: Disable Run OCR button
             speakTranslationButton.disabled = true;
             audioSegmentVideoIdInput.value = '';
             fromSecondsInput.disabled = true;
@@ -147,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadAudioButton.disabled = false;
         translateAudioButton.disabled = false;
         downloadFrameButton.disabled = false;
+        runOcrButton.disabled = false; // NEW: Enable Run OCR button
         speakTranslationButton.disabled = false;
         fromSecondsInput.disabled = false;
         toSecondsInput.disabled = false;
@@ -210,14 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
         firstFrameImg.style.display = 'block';
         console.log("Loading thumbnail from:", thumbnailFileUrl);
 
-        // MOCK_API call for OCR (runs on the displayed thumbnail image)
-        try {
-            const ocrResult = await MOCK_API.performOcr(firstFrameImg.src); // Pass src or a Blob from it
-            ocrOutputDiv.innerHTML = ocrResult.join('<br>') || 'No text detected.';
-        } catch (error) {
-            console.error("Error performing OCR:", error);
-            ocrOutputDiv.innerHTML = 'Error or No text detected.';
-        }
+        // --- NEW: Populate OCR output from video.thumbnail_ocr ---
+        ocrOutputDiv.innerHTML = video.thumbnail_ocr || 'No text detected yet.';
+        // --- END NEW OCR POPULATION ---
 
         // Update the video URL input and its floating label
         videoUrlInput.value = video.original_url;
@@ -375,10 +373,11 @@ document.addEventListener('DOMContentLoaded', () => {
     async function initUI() {
         // Disable action buttons and audio inputs initially
         playAudioButton.disabled = true;
-        stopAudioButton.disabled = true; // NEW: Initially disabled
+        stopAudioButton.disabled = true;
         downloadAudioButton.disabled = true;
         translateAudioButton.disabled = true;
         downloadFrameButton.disabled = true;
+        runOcrButton.disabled = true; // NEW: Disable Run OCR button initially
         speakTranslationButton.disabled = true;
         fromSecondsInput.disabled = true;
         toSecondsInput.disabled = true;
@@ -459,19 +458,10 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("MOCK: Text to speech for:", text);
             resolve(new Audio());
         }, 500)),
-        performOcr: (imageUrl) => new Promise(resolve => setTimeout(() => {
-            console.log("MOCK: Performing OCR on image:", imageUrl);
-            if (imageUrl.includes('dummy')) {
-                resolve(["No text detected in dummy image."]);
-            } else if (imageUrl.includes('thumbnail')) {
-                resolve([`Text from Thumbnail (Mock)`, `Video ID: ${currentLoadedVideo ? currentLoadedVideo.id : 'N/A'}`]);
-            } else {
-                resolve(["Mock OCR Result 1", "Mock OCR Result 2"]);
-            }
-        }, 500)),
+        // performOcr removed, now using backend directly or via runOcrButton
     };
 
-    // --- NEW: Function to stop current audio playback ---
+    // --- Function to stop current audio playback ---
     function stopCurrentAudio() {
         if (currentAudioInstance) {
             currentAudioInstance.pause();
@@ -527,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    // NEW: Event listener for Stop Audio button
+    // Event listener for Stop Audio button
     stopAudioButton.addEventListener('click', () => {
         console.log("Stopping audio playback.");
         stopCurrentAudio();
@@ -584,7 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         // Disable all audio action buttons during translation
         playAudioButton.disabled = true;
-        stopAudioButton.disabled = true; // NEW
+        stopAudioButton.disabled = true;
         downloadAudioButton.disabled = true;
         translateAudioButton.disabled = true;
 
@@ -663,4 +653,52 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("No thumbnail image available to download.");
         }
     });
+
+    // --- NEW: Event listener for Run OCR button ---
+    runOcrButton.addEventListener('click', async () => {
+        if (!currentLoadedVideo) {
+            alert("No video loaded to perform OCR on.");
+            return;
+        }
+
+        console.log(`Running OCR for thumbnail of video ID: ${currentLoadedVideo.id}`);
+        showLoading();
+        // Disable relevant buttons during OCR processing
+        downloadFrameButton.disabled = true;
+        runOcrButton.disabled = true;
+
+        try {
+            const response = await fetch(`/videos/${currentLoadedVideo.id}/thumbnail-ocr`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                // No body needed for this endpoint as per API definition
+            });
+
+            if (response.ok) {
+                const updatedVideo = await response.json();
+                console.log("OCR successful:", updatedVideo);
+                // Update the currentLoadedVideo object with the new OCR data
+                currentLoadedVideo.thumbnail_ocr = updatedVideo.thumbnail_ocr;
+                ocrOutputDiv.innerHTML = updatedVideo.thumbnail_ocr || 'No text detected.';
+            } else {
+                const errorData = await response.json();
+                console.error("Error during OCR:", errorData);
+                alert(`OCR failed: ${errorData.detail || response.statusText}`);
+                ocrOutputDiv.innerHTML = `Error: ${errorData.detail || 'OCR failed.'}`;
+            }
+        } catch (error) {
+            console.error("Network error during OCR:", error);
+            alert('Network error during OCR.');
+            ocrOutputDiv.innerHTML = 'Error: Network error during OCR.';
+        } finally {
+            hideLoading();
+            // Re-enable buttons
+            downloadFrameButton.disabled = false;
+            runOcrButton.disabled = false;
+        }
+    });
+    // --- END NEW RUN OCR BUTTON ---
+
 });
