@@ -199,3 +199,23 @@ def translate_audio_segment(
         original_text=translation.original_text,
         translated_text=translation.translated_text,
     )
+
+
+@video_router.post(
+    "/videos/{video_id}/thumbnail-ocr",
+    status_code=status.HTTP_200_OK,
+)
+def video_thumbnail_ocr(video_id: str, service: VideoServiceDependable) -> Video:
+    try:
+        service.generate_thumbnail_ocr(video_id)
+        video = service.get_video(video_id)
+    except NoVideosError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+    return Video.from_core(
+        video,
+        service.extract_video_metadata(
+            video.id,
+            video.video_type,
+        ),
+    )

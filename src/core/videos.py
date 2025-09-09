@@ -111,6 +111,7 @@ class VideoService:
         thumbnail = Path(f"data/thumbnails/{video_id}.png")
         ocr_text = self.ocr.generate_ocr(thumbnail)
         video.thumbnail_ocr = ocr_text
+        self.session.flush()
 
     def extract_video_metadata(
         self, video_id: str, video_type: VideoType = VideoType.MP4
