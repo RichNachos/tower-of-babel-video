@@ -28,13 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const toSecondsInput = document.getElementById('to-seconds');
     const playAudioButton = document.getElementById('play-audio');
     const downloadAudioButton = document.getElementById('download-audio');
-    const translateAudioButton = document.getElementById('translate-audio-button'); // NEW
+    const translateAudioButton = document.getElementById('translate-audio-button');
 
     // Other Cards
     const translationP = document.getElementById('translation');
     const speakTranslationButton = document.getElementById('speak-translation');
-    const firstFrameImg = document.getElementById('first-frame');
-    const downloadFrameButton = document.getElementById('download-frame');
+    const firstFrameImg = document.getElementById('first-frame'); // This is now for the static thumbnail
+    const downloadFrameButton = document.getElementById('download-frame'); // This is now for downloading the thumbnail
     const ocrOutputDiv = document.getElementById('ocr-output');
 
     // Sidebar Elements
@@ -42,9 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevPageButton = document.getElementById('prev-page-button');
     const nextPageButton = document.getElementById('next-page-button');
     const pageInfoSpan = document.getElementById('page-info');
-    const translationListTbody = document.getElementById('translation-list-tbody'); // NEW
+    const translationListTbody = document.getElementById('translation-list-tbody');
 
-    // Translation Modal Elements (NEW)
+    // Translation Modal Elements
     const translationModalElement = document.getElementById('translation-modal');
     const translationModal = mdc.dialog.MDCDialog.attachTo(translationModalElement);
     const modalOriginalText = document.getElementById('modal-original-text');
@@ -57,11 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const videosPerPage = 5; // Number of videos to show per page in the sidebar
     let currentLoadedVideo = null; // Store the currently loaded video object
-    let allTranslationsForVideo = []; // NEW: Store translations for the current video
+    let allTranslationsForVideo = []; // Store translations for the current video
 
-    // --- Constants for Translation (as per task) ---
-    const FROM_LANGUAGE = 'English'; // Assuming English audio for now
-    const TO_LANGUAGE = 'Spanish'; // Translate to Spanish
+    // --- Constants for Translation ---
+    const FROM_LANGUAGE = 'EN'; // As per API definition (Language enum is EN, ES etc.)
+    const TO_LANGUAGE = 'ES';
     // -------------------------------------------------
 
 
@@ -112,8 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
             heightSpan.textContent = 'N/A';
 
             translationP.textContent = 'N/A';
-            firstFrameImg.src = '';
-            firstFrameImg.style.display = 'none';
+            firstFrameImg.src = ''; // Clear thumbnail source
+            firstFrameImg.style.display = 'none'; // Hide thumbnail
             ocrOutputDiv.innerHTML = 'No text detected yet.';
             videoUrlInput.value = '';
             const videoUrlTextField = mdc.textField.MDCTextField.attachTo(videoUrlInput.closest('.mdc-text-field'));
@@ -123,8 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Disable all action buttons and audio inputs if no video is loaded
             playAudioButton.disabled = true;
             downloadAudioButton.disabled = true;
-            translateAudioButton.disabled = true; // NEW
-            downloadFrameButton.disabled = true;
+            translateAudioButton.disabled = true;
+            downloadFrameButton.disabled = true; // Disable thumbnail download button
             speakTranslationButton.disabled = true;
             audioSegmentVideoIdInput.value = '';
             fromSecondsInput.disabled = true;
@@ -140,8 +140,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Enable all action buttons and audio inputs
         playAudioButton.disabled = false;
         downloadAudioButton.disabled = false;
-        translateAudioButton.disabled = false; // NEW
-        downloadFrameButton.disabled = false;
+        translateAudioButton.disabled = false;
+        downloadFrameButton.disabled = false; // Enable thumbnail download button
         speakTranslationButton.disabled = false;
         fromSecondsInput.disabled = false;
         toSecondsInput.disabled = false;
@@ -199,20 +199,22 @@ document.addEventListener('DOMContentLoaded', () => {
         mdc.textField.MDCTextField.attachTo(toSecondsInput.closest('.mdc-text-field')).layout();
 
 
-        // MOCK_API calls for first frame and OCR (assuming these are separate processes/endpoints)
-        try {
-            const firstFrame = await MOCK_API.getFirstFrame(video.original_url);
-            firstFrameImg.src = URL.createObjectURL(firstFrame);
-            firstFrameImg.style.display = 'block';
+        // --- NEW: Load Video Thumbnail (firstFrameImg is now the thumbnail) ---
+        const thumbnailFileUrl = `/data/thumbnails/${video.id}.png`;
+        firstFrameImg.src = thumbnailFileUrl;
+        firstFrameImg.style.display = 'block';
+        console.log("Loading thumbnail from:", thumbnailFileUrl);
 
-            const ocrResult = await MOCK_API.performOcr(firstFrame);
+        // MOCK_API call for OCR (runs on the displayed thumbnail image)
+        try {
+            // We use the thumbnail directly for OCR
+            const ocrResult = await MOCK_API.performOcr(firstFrameImg.src); // Pass src or a Blob from it
             ocrOutputDiv.innerHTML = ocrResult.join('<br>') || 'No text detected.';
         } catch (error) {
-            console.error("Error fetching first frame or performing OCR:", error);
-            firstFrameImg.src = '';
-            firstFrameImg.style.display = 'none';
+            console.error("Error performing OCR:", error);
             ocrOutputDiv.innerHTML = 'Error or No text detected.';
         }
+        // --- END NEW THUMBNAIL/OCR ---
 
         // Update the video URL input and its floating label
         videoUrlInput.value = video.original_url;
@@ -220,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         videoUrlTextField.value = video.original_url;
         videoUrlTextField.layout();
         
-        // NEW: Fetch translations for the loaded video
+        // Fetch translations for the loaded video
         await fetchTranslationsForVideo(video.id);
     }
 
@@ -259,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         nextPageButton.disabled = currentPage >= totalPages;
     }
 
-    // --- Function to render translations list in sidebar (NEW) ---
+    // --- Function to render translations list in sidebar ---
     function renderTranslationsList() {
         translationListTbody.innerHTML = ''; // Clear existing rows
 
@@ -283,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Functions for Translation Modal (NEW) ---
+    // --- Functions for Translation Modal ---
     function openTranslationModal(translation) {
         modalOriginalText.textContent = translation.original_text;
         modalTranslatedText.textContent = translation.translated_text;
@@ -318,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Function to fetch translations for a specific video (NEW) ---
+    // --- Function to fetch translations for a specific video ---
     async function fetchTranslationsForVideo(videoId) {
         console.log(`Fetching translations for video ID: ${videoId}`);
         try {
@@ -350,7 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const video = await response.json();
                 console.log("Last video loaded:", video);
                 await loadVideoDetails(video);
-            } else if (response.status === 404) { // NoVideosError from backend (changed to 404 in previous change)
+            } else if (response.status === 404) { // NoVideosError from backend
                 console.log("No last video found.");
                 await loadVideoDetails(null); // Clear UI and show "No video" message
             } else {
@@ -371,8 +373,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Disable action buttons and audio inputs initially
         playAudioButton.disabled = true;
         downloadAudioButton.disabled = true;
-        translateAudioButton.disabled = true; // NEW
-        downloadFrameButton.disabled = true;
+        translateAudioButton.disabled = true;
+        downloadFrameButton.disabled = true; // Disable thumbnail download button initially
         speakTranslationButton.disabled = true;
         fromSecondsInput.disabled = true;
         toSecondsInput.disabled = true;
@@ -445,27 +447,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // MOCK_API: Only keeping mock functions for features NOT covered by backend endpoints.
     const MOCK_API = {
-        // getAudioClip is removed, now using backend directly
-        // translateText is replaced by backend /videos/{video_id}/audio-segment/translate
-        // textToSpeech could eventually be a backend endpoint, but remains mock for now
+        translateText: (text) => new Promise(resolve => setTimeout(() => {
+            console.log("MOCK: Translating text:", text);
+            resolve("Hola, este es un texto de ejemplo en español.");
+        }, 500)),
         textToSpeech: (text) => new Promise(resolve => setTimeout(() => {
             console.log("MOCK: Text to speech for:", text);
             resolve(new Audio());
         }, 500)),
-        getFirstFrame: (url) => new Promise(resolve => setTimeout(() => {
-            console.log("MOCK: Getting first frame for", url);
-            const dummyImageData = "R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==";
-            const byteCharacters = atob(dummyImageData);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
+        // Removed getFirstFrame as we're now using static thumbnail
+        performOcr: (imageUrl) => new Promise(resolve => setTimeout(() => { // Updated to accept imageUrl
+            console.log("MOCK: Performing OCR on image:", imageUrl);
+            // Simulate some OCR result based on image URL (optional, but shows it's dynamic)
+            if (imageUrl.includes('dummy')) {
+                resolve(["No text detected in dummy image."]);
+            } else if (imageUrl.includes('thumbnail')) {
+                resolve([`Text from Thumbnail (Mock)`, `Video ID: ${currentLoadedVideo ? currentLoadedVideo.id : 'N/A'}`]);
+            } else {
+                resolve(["Mock OCR Result 1", "Mock OCR Result 2"]);
             }
-            const byteArray = new Uint8Array(byteNumbers);
-            resolve(new Blob([byteArray], { type: 'image/gif' }));
-        }, 500)),
-        performOcr: (image) => new Promise(resolve => setTimeout(() => {
-            console.log("MOCK: Performing OCR on image.");
-            resolve(["Mock OCR Result 1", "Mock OCR Result 2"]);
         }, 500)),
     };
 
@@ -523,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(a); // Clean up
     });
 
-    // Event listener for the new "Translate Audio Segment" button (NEW)
+    // Event listener for the "Translate Audio Segment" button
     translateAudioButton.addEventListener('click', async () => {
         if (!currentLoadedVideo) {
             alert("No video loaded to translate audio from.");
@@ -565,7 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const translationResult = await response.json();
                 console.log("Translation successful:", translationResult);
-                translationP.textContent = `Original: "${translationResult.original_text}"\nTranslated (ES): "${translationResult.translated_text}"`;
+                translationP.textContent = `Original: "${translationResult.original_text}"\nTranslated (${TO_LANGUAGE}): "${translationResult.translated_text}"`;
                 await fetchTranslationsForVideo(currentLoadedVideo.id); // Refresh translations list
             } else {
                 const errorData = await response.json();
@@ -587,14 +587,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
-    // Event listeners for other buttons (using MOCK_API)
+    // Event listener for Speak Translation button
     speakTranslationButton.addEventListener('click', async () => {
         if (!currentLoadedVideo) {
             alert("No video loaded to speak translation from.");
             return;
         }
-        const textToSpeak = translationP.textContent.includes('Original:') ? translationP.textContent.split('\n')[1].replace('Translated (ES): "', '').slice(0, -1) : translationP.textContent;
-        if (textToSpeak === 'N/A' || textToSpeak.includes('Error:')) {
+        const textToSpeak = translationP.textContent.includes('Original:') ? translationP.textContent.split(`Translated (${TO_LANGUAGE}): "`)[1].slice(0, -1) : translationP.textContent;
+        if (textToSpeak === 'N/A' || textToSpeak.includes('Error:') || textToSpeak.trim() === '') {
             alert("No valid translation available to speak.");
             return;
         }
@@ -603,22 +603,23 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("Speaking mock translation.");
     });
 
+    // Event listener for Download Thumbnail button (formerly Download Frame)
     downloadFrameButton.addEventListener('click', async () => {
         if (!currentLoadedVideo) {
-            alert("No video loaded to download frame from.");
+            alert("No video loaded to download thumbnail from.");
             return;
         }
-        const currentFrameSrc = firstFrameImg.src;
-        if (currentFrameSrc && currentFrameSrc.startsWith('blob:')) { // Check if it's a blob URL
+        const thumbnailFileUrl = firstFrameImg.src; // This is now the static thumbnail URL
+        if (thumbnailFileUrl && !thumbnailFileUrl.includes('dummy')) { // Ensure it's a valid thumbnail, not just a placeholder
             const a = document.createElement('a');
-            a.href = currentFrameSrc;
-            a.download = `first-frame-${currentLoadedVideo.id}.png`;
+            a.href = thumbnailFileUrl;
+            a.download = `thumbnail-${currentLoadedVideo.id}.png`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            console.log("Downloading current first frame.");
+            console.log("Downloading thumbnail:", thumbnailFileUrl);
         } else {
-            alert("No frame image available to download.");
+            alert("No thumbnail image available to download.");
         }
     });
 });
