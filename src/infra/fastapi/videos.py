@@ -58,6 +58,7 @@ class VideoMetadata(BaseModel):
 class Video(BaseModel):
     id: str
     original_url: str
+    thumbnail_ocr: str | None
     video_type: str
     created_at: datetime
     metadata: VideoMetadata
@@ -67,6 +68,7 @@ class Video(BaseModel):
         return Video(
             id=v.id,
             original_url=v.original_url,
+            thumbnail_ocr=v.thumbnail_ocr,
             video_type=v.video_type.value,
             created_at=v.created_at,
             metadata=VideoMetadata.from_core(mt),
